@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* ECHO EARTH — living surface.
+   Every color below is set at runtime by the environment engine
+   (engine/environment.ts applyTheme). These are only the embryo values
+   shown for the first paint, before the organism senses anything. */
+:root {
+  --ee-bg: hsl(250, 55%, 6%);
+  --ee-bg-deep: hsl(250, 60%, 3%);
+  --ee-surface: hsla(250, 40%, 12%, 0.55);
+  --ee-glow: hsla(190, 90%, 60%, 0.35);
+  --ee-accent: hsl(190, 95%, 60%);
+  --ee-accent2: hsl(250, 80%, 70%);
+  --ee-text: hsl(250, 25%, 94%);
+  --ee-text-dim: hsla(250, 18%, 70%, 0.85);
+  --ee-line: hsla(190, 60%, 60%, 0.18);
+  --ee-breath: 6.5s;
+  --ee-blur: 18px;
+  --ee-motion: 1;
+}
+
+@theme inline {
+  --color-ee-bg: var(--ee-bg);
+  --color-ee-surface: var(--ee-surface);
+  --color-ee-accent: var(--ee-accent);
+  --color-ee-accent2: var(--ee-accent2);
+  --color-ee-text: var(--ee-text);
+  --color-ee-dim: var(--ee-text-dim);
+  --color-ee-line: var(--ee-line);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(120% 120% at 50% 0%, var(--ee-bg) 0%, var(--ee-bg-deep) 100%);
+  color: var(--ee-text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+  transition: background 2.4s ease;
+}
+
+::selection {
+  background: var(--ee-accent);
+  color: var(--ee-bg-deep);
+}
+
+/* ---- the breath: everything organic inherits this pulse ---- */
+@keyframes ee-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(calc(1 + 0.025 * var(--ee-motion))); opacity: 1; }
+}
+.ee-breathe {
+  animation: ee-breathe var(--ee-breath) ease-in-out infinite;
+}
+
+@keyframes ee-pulse-ring {
+  0% { box-shadow: 0 0 0 0 var(--ee-glow); }
+  70% { box-shadow: 0 0 0 18px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.ee-pulse {
+  animation: ee-pulse-ring calc(var(--ee-breath) / 2) ease-out infinite;
+}
+
+/* ---- liquid glass ---- */
+.ee-glass {
+  background: var(--ee-surface);
+  backdrop-filter: blur(var(--ee-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--ee-blur)) saturate(1.4);
+  border: 1px solid var(--ee-line);
+  border-radius: 1.5rem;
+}
+
+.ee-glow-text {
+  text-shadow: 0 0 24px var(--ee-glow), 0 0 64px var(--ee-glow);
+}
+
+/* hairline scrollbars that match the organism */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ee-line) transparent;
+}
+
+/* respect reduced motion completely */
+@media (prefers-reduced-motion: reduce) {
+  .ee-breathe, .ee-pulse {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
