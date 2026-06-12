@@ -33,6 +33,7 @@ export default function EchoEarth() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [selected, setSelected] = useState<Place | null>(null);
   const [dataMode, setDataMode] = useState<"live" | "echo" | null>(null);
+  const [mapZoom, setMapZoom] = useState(1);
 
   useEffect(() => {
     setMounted(true);
@@ -125,8 +126,14 @@ export default function EchoEarth() {
 
         {/* neural city */}
         <div className="relative flex-1 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
-          {env.lat != null && env.lon != null && <LivingMap lat={env.lat} lon={env.lon} theme={theme} />}
-          <NeuralMap places={visiblePlaces} selectedId={selected?.id ?? null} onSelect={pickPlace} motionIntensity={theme.motionIntensity} />
+          {env.lat != null && env.lon != null && <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />}
+          <NeuralMap
+            places={visiblePlaces}
+            selectedId={selected?.id ?? null}
+            onSelect={pickPlace}
+            motionIntensity={theme.motionIntensity}
+            onZoom={(z) => setMapZoom(Math.round(z * 10) / 10)}
+          />
           {visiblePlaces.length === 0 && (
             <div className="absolute inset-0 grid place-items-center pointer-events-none">
               <p className="text-xs tracking-[0.3em] uppercase animate-pulse" style={{ color: "var(--ee-text-dim)" }}>

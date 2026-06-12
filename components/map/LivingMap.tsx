@@ -29,7 +29,7 @@ function moodStyles(theme: Theme): google.maps.MapTypeStyle[] {
   ];
 }
 
-export default function LivingMap({ lat, lon, theme }: { lat: number; lon: number; theme: Theme }) {
+export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; lon: number; theme: Theme; zoom?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -60,6 +60,11 @@ export default function LivingMap({ lat, lon, theme }: { lat: number; lon: numbe
   useEffect(() => {
     mapRef.current?.setCenter({ lat, lng: lon });
   }, [lat, lon]);
+
+  // follow the neural field's zoom: factor 1 = tile zoom 14
+  useEffect(() => {
+    mapRef.current?.setZoom(14 + Math.round(Math.log2(zoom) * 2) / 2);
+  }, [zoom]);
 
   useEffect(() => {
     mapRef.current?.setOptions({ styles: moodStyles(theme) });
