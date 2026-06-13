@@ -47,6 +47,15 @@ export default function EchoEarth() {
   useEffect(() => {
     if (!ambient.muted) ambient.setMood(theme.audioMood);
   }, [theme.audioMood]);
+  // the weather noise bed follows the real sky + time of day
+  useEffect(() => {
+    const night = theme.phase === "night" || theme.phase === "latenight";
+    ambient.reactWeather(env.weather.kind, night);
+  }, [env.weather.kind, theme.phase]);
+  // synthetic atmospheres recolor the sound character
+  useEffect(() => {
+    ambient.setAtmosphere(mind.atmosphere);
+  }, [mind.atmosphere]);
   useEffect(() => {
     const onMove = () => ambient.excite(env.motionEnergy);
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -81,11 +90,13 @@ export default function EchoEarth() {
   const pickCategory = useCallback((id: CategoryId) => {
     setCategory(id);
     setSelected(null);
+    ambient.blip("tick");
     useAdaptiveMind.getState().noticeCategory(id);
   }, []);
 
   const pickPlace = useCallback((p: Place) => {
     setSelected(p);
+    ambient.blip("select");
     const m = useAdaptiveMind.getState();
     m.noticeCategory(p.category, 0.2);
     m.recordDiscovery();
