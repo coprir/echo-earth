@@ -14,7 +14,7 @@ import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
 import { rankCategories, filterPlaces } from "@/lib/recommend";
-import Awakening from "@/components/organism/Awakening";
+import PlanetaryEntry from "@/components/planet/PlanetaryEntry";
 import NeuralMap from "@/components/map/NeuralMap";
 import LivingMap from "@/components/map/LivingMap";
 import CategoryOrbs from "@/components/discovery/CategoryOrbs";
@@ -108,7 +108,7 @@ export default function EchoEarth() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden">
-      {!awake && <Awakening env={env} theme={theme} onDone={() => setAwake(true)} />}
+      {!awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
 
       <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
 
