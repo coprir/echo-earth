@@ -11,6 +11,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CategoryId } from "@/lib/places";
+import type { Atmosphere } from "./environment";
 
 export type MoodMode = "explore" | "latenight" | "rainyday" | "cheapeats" | "luxury" | "hiddengems";
 
@@ -19,11 +20,16 @@ export type TravelMode = "still" | "walking" | "driving";
 interface MindState {
   affinities: Partial<Record<CategoryId, number>>; // 0..1 learned preference
   visits: number;
+  discoveries: number; // total places opened across all visits — dopamine progression
   mode: MoodMode;
   travel: TravelMode;
+  atmosphere: Atmosphere; // chosen synthetic weather, persisted
   lastSpeedMps: number;
+  nightQuietBias: number; // 0..1 learned preference for quiet places after dark
   noticeCategory: (c: CategoryId, weight?: number) => void;
+  recordDiscovery: () => void;
   setMode: (m: MoodMode) => void;
+  setAtmosphere: (a: Atmosphere) => void;
   reportSpeed: (metersPerSecond: number) => void;
   wake: () => void;
   /** Categories ranked by learned affinity, strongest first. */
@@ -35,9 +41,12 @@ export const useAdaptiveMind = create<MindState>()(
     (set, get) => ({
       affinities: {},
       visits: 0,
+      discoveries: 0,
       mode: "explore",
       travel: "still",
+      atmosphere: "auto",
       lastSpeedMps: 0,
+      nightQuietBias: 0,
 
       noticeCategory: (c, weight = 0.12) =>
         set((s) => {
@@ -45,10 +54,21 @@ export const useAdaptiveMind = create<MindState>()(
           // all affinities decay slightly; the noticed one grows
           for (const [k, v] of Object.entries(s.affinities)) next[k as CategoryId] = (v ?? 0) * 0.97;
           next[c] = Math.min(1, (next[c] ?? 0) + weight);
-          return { affinities: next };
+          // learn the night-quiet tendency: opening calm categories after dark
+          const hour = new Date().getHours();
+          const quietCat = c === "cafes" || c === "scenic" || c === "coworking" || c === "gems";
+          const nightQuietBias =
+            hour >= 20 || hour < 5
+              ? Math.min(1, s.nightQuietBias + (quietCat ? 0.08 : -0.05))
+              : s.nightQuietBias;
+          return { affinities: next, nightQuietBias: Math.max(0, nightQuietBias) };
         }),
 
+      recordDiscovery: () => set((s) => ({ discoveries: s.discoveries + 1 })),
+
       setMode: (m) => set({ mode: m }),
+
+      setAtmosphere: (a) => set({ atmosphere: a }),
 
       reportSpeed: (mps) => {
         const travel: TravelMode = mps > 6 ? "driving" : mps > 0.7 ? "walking" : "still";

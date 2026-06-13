@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAdaptiveMind } from "./useAdaptiveMind";
 import {
   EnvSignals,
   Theme,
@@ -251,7 +252,8 @@ export function useEnvironment() {
     [clock, geo, weather, device, isTouch, screenW, screenH, batteryLevel, batterySaver, netSpeed, prefersDark, prefersReducedMotion, perfTier, motionEnergy, seed, mutationTick]
   );
 
-  const theme: Theme = useMemo(() => resolveTheme(env), [env]);
+  const atmosphere = useAdaptiveMind((s) => s.atmosphere);
+  const theme: Theme = useMemo(() => resolveTheme(env, atmosphere), [env, atmosphere]);
 
   useEffect(() => {
     applyTheme(theme);

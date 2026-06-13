@@ -7,13 +7,13 @@
  */
 
 import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEnvironment } from "@/engine/useEnvironment";
 import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
-import { rankCategories, filterPlaces, whisper } from "@/lib/recommend";
+import { rankCategories, filterPlaces } from "@/lib/recommend";
 import Awakening from "@/components/organism/Awakening";
 import NeuralMap from "@/components/map/NeuralMap";
 import LivingMap from "@/components/map/LivingMap";
@@ -21,6 +21,8 @@ import CategoryOrbs from "@/components/discovery/CategoryOrbs";
 import MoodModes from "@/components/discovery/MoodModes";
 import PlaceDetail from "@/components/discovery/PlaceDetail";
 import VitalsHUD from "@/components/hud/VitalsHUD";
+import Consciousness from "@/components/organism/Consciousness";
+import AtmospherePicker from "@/components/discovery/AtmospherePicker";
 
 const ParticleField = dynamic(() => import("@/components/organism/ParticleField"), { ssr: false });
 
@@ -84,10 +86,10 @@ export default function EchoEarth() {
 
   const pickPlace = useCallback((p: Place) => {
     setSelected(p);
-    useAdaptiveMind.getState().noticeCategory(p.category, 0.2);
+    const m = useAdaptiveMind.getState();
+    m.noticeCategory(p.category, 0.2);
+    m.recordDiscovery();
   }, []);
-
-  const thought = whisper(mind.mode, theme.phase, env.weather.kind, env.city, mind.travel);
 
   if (!mounted) {
     return <main className="min-h-dvh" style={{ background: "var(--ee-bg-deep)" }} />;
@@ -101,29 +103,20 @@ export default function EchoEarth() {
 
       <VitalsHUD env={env} theme={theme} travel={mind.travel} />
 
+      {/* the City Consciousness — the organism's living voice */}
+      {awake && <Consciousness env={env} category={category} placeCount={visiblePlaces.length} />}
+
+      {/* Digital Weather System — synthetic atmosphere selector */}
+      {awake && <AtmospherePicker />}
+
       {/* the discovery field */}
       <motion.section
-        className="relative z-10 flex flex-col h-dvh pt-16"
+        className="relative z-10 flex flex-col h-dvh pt-24 landscape:pt-20"
         initial={{ opacity: 0 }}
         animate={{ opacity: awake ? 1 : 0 }}
         transition={{ duration: 1.6, ease: "easeOut" }}
         aria-label="Discovery field"
       >
-        {/* the organism's current thought */}
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={thought}
-            initial={{ opacity: 0, filter: "blur(6px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, filter: "blur(6px)" }}
-            transition={{ duration: 0.9 }}
-            className="text-center text-sm font-light px-6"
-            style={{ color: "var(--ee-text-dim)" }}
-          >
-            {thought}
-          </motion.p>
-        </AnimatePresence>
-
         {/* neural city */}
         <div className="relative flex-1 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
           {env.lat != null && env.lon != null && <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />}

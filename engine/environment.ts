@@ -98,6 +98,44 @@ interface Mood {
   font: Theme["fontMood"];
 }
 
+/**
+ * Artificial emotional weather — the visitor can override the organism's
+ * natural mood with a synthetic atmosphere. "auto" follows the real world.
+ */
+export type Atmosphere =
+  | "auto"
+  | "dream"
+  | "neonstorm"
+  | "calmpulse"
+  | "goldensunset"
+  | "cyberrain"
+  | "midnight"
+  | "aurora"
+  | "chaos";
+
+export const ATMOSPHERES: { id: Atmosphere; label: string; whisper: string }[] = [
+  { id: "auto", label: "Synced", whisper: "breathing with the real sky" },
+  { id: "dream", label: "Dream", whisper: "the city drifts half-asleep" },
+  { id: "neonstorm", label: "Neon Storm", whisper: "voltage in the air" },
+  { id: "calmpulse", label: "Calm Pulse", whisper: "everything slows to a heartbeat" },
+  { id: "goldensunset", label: "Golden Sunset", whisper: "the hour that forgives everything" },
+  { id: "cyberrain", label: "Cyber Rain", whisper: "chrome streets, falling light" },
+  { id: "midnight", label: "Midnight Silence", whisper: "only the open doors are awake" },
+  { id: "aurora", label: "Aurora", whisper: "the sky is leaking color" },
+  { id: "chaos", label: "Chaos", whisper: "the city forgot its own rules" },
+];
+
+const SYNTHETIC_MOODS: Record<Exclude<Atmosphere, "auto">, Mood> = {
+  dream: { label: "Dream", baseHue: 265, accentHue: 300, particles: "fireflies", audio: "warm", light: false, font: "humanist" },
+  neonstorm: { label: "Neon Storm", baseHue: 305, accentHue: 180, particles: "rain", audio: "neon", light: false, font: "mono" },
+  calmpulse: { label: "Calm Pulse", baseHue: 165, accentHue: 145, particles: "dust", audio: "warm", light: false, font: "humanist" },
+  goldensunset: { label: "Golden Sunset", baseHue: 24, accentHue: 340, particles: "embers", audio: "warm", light: false, font: "humanist" },
+  cyberrain: { label: "Cyber Rain", baseHue: 195, accentHue: 170, particles: "rain", audio: "rainy", light: false, font: "mono" },
+  midnight: { label: "Midnight Silence", baseHue: 235, accentHue: 255, particles: "frost", audio: "cold", light: false, font: "geometric" },
+  aurora: { label: "Aurora", baseHue: 155, accentHue: 285, particles: "fireflies", audio: "cold", light: false, font: "geometric" },
+  chaos: { label: "Chaos", baseHue: 0, accentHue: 55, particles: "embers", audio: "neon", light: false, font: "mono" },
+};
+
 /** The organism's personality table: weather × phase × season → mood. */
 function resolveMood(phase: TimePhase, s: Season, w: WeatherKind): Mood {
   if (w === "snow" || (s === "winter" && (w === "mist" || w === "clouds")))
@@ -119,15 +157,19 @@ function resolveMood(phase: TimePhase, s: Season, w: WeatherKind): Mood {
   return { label: "Verdant Pulse", baseHue: 140, accentHue: 90, particles: "dust", audio: "warm", light: true, font: "humanist" };
 }
 
-export function resolveTheme(env: EnvSignals): Theme {
+export function resolveTheme(env: EnvSignals, atmosphere: Atmosphere = "auto"): Theme {
   const phase = timePhase(env.now);
   const s = season(env.now, env.lat);
-  const mood = resolveMood(phase, s, env.weather.kind);
+  // Digital Weather System: a chosen synthetic atmosphere overrides the
+  // organism's natural mood; "auto" keeps it synced to the real sky.
+  const synthetic = atmosphere !== "auto";
+  const mood = synthetic ? SYNTHETIC_MOODS[atmosphere] : resolveMood(phase, s, env.weather.kind);
 
   const seed = env.visitorSeed;
   const tick = env.mutationTick;
-  const base = drift(mood.baseHue, seed, tick);
-  const acc = drift(mood.accentHue, seed + 0.31, tick, 20);
+  // synthetic atmospheres drift faster and wider — they feel more "generated"
+  const base = drift(mood.baseHue, seed, tick, synthetic ? 22 : 14);
+  const acc = drift(mood.accentHue, seed + 0.31, tick, synthetic ? 30 : 20);
 
   const survival = env.batterySaver || (env.batteryLevel !== null && env.batteryLevel < 0.15);
   const dark = survival ? true : mood.light ? false : true;
@@ -149,16 +191,21 @@ export function resolveTheme(env: EnvSignals): Theme {
   const tierDensity: Record<PerfTier, number> = { survival: 0, low: 0.25, mid: 0.6, high: 1 };
   const tier: PerfTier = survival ? "survival" : env.perfTier;
 
+  // synthetic atmospheres bend the motion personality
+  const moodMotion = atmosphere === "chaos" ? 1.25 : atmosphere === "calmpulse" || atmosphere === "midnight" ? 0.5 : 1;
+  const baseMotion = survival ? 0.15 : tier === "low" ? 0.45 : tier === "mid" ? 0.75 : 1;
+
   return {
-    id: `${mood.label}-${phase}-${s}-${tick}`,
+    id: `${mood.label}-${phase}-${s}-${tick}-${atmosphere}`,
     label: survival ? "Survival Mode" : mood.label,
     phase,
     season: s,
     palette,
     particles: tier === "survival" || env.prefersReducedMotion ? "none" : mood.particles,
-    particleDensity: env.prefersReducedMotion ? 0 : tierDensity[tier] * (0.6 + 0.4 * env.motionEnergy),
-    breathSeconds: survival ? 12 : phase === "latenight" ? 9 : 6.5,
-    motionIntensity: env.prefersReducedMotion ? 0 : survival ? 0.15 : tier === "low" ? 0.45 : tier === "mid" ? 0.75 : 1,
+    particleDensity:
+      env.prefersReducedMotion ? 0 : tierDensity[tier] * (0.6 + 0.4 * env.motionEnergy) * (synthetic ? 1.25 : 1),
+    breathSeconds: survival ? 12 : atmosphere === "calmpulse" ? 11 : atmosphere === "chaos" ? 4.5 : phase === "latenight" ? 9 : 6.5,
+    motionIntensity: env.prefersReducedMotion ? 0 : Math.min(1.3, baseMotion * moodMotion),
     glassBlur: tier === "survival" || tier === "low" ? 6 : 18,
     fontMood: mood.font,
     audioMood: mood.audio,

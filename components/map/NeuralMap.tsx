@@ -46,6 +46,8 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<Node[]>([]);
   const pointerRef = useRef({ x: 0.5, y: 0.5 });
+  // gyroscope tilt, normalized -1..1, drives parallax on touch devices
+  const tiltRef = useRef({ x: 0, y: 0 });
   // view transform: screen = center + (world - 0.5) * size * z + pan
   const viewRef = useRef({ z: 1, px: 0, py: 0 });
   const propsRef = useRef({ selectedId, onSelect, motionIntensity, onZoom });
@@ -112,13 +114,37 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
+    // orientation change (touch rotate) doesn't always trip the ResizeObserver
+    // synchronously, so re-measure explicitly after the rotation settles.
+    const onOrient = () => setTimeout(resize, 120);
+    window.addEventListener("orientationchange", onOrient);
+
+    // ---- gyroscope parallax: the field leans with the device ----
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      // gamma: left-right tilt (-90..90), beta: front-back (-180..180)
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const lr = (e.gamma ?? 0) / 45;
+      const fb = ((e.beta ?? 0) - 45) / 45; // ~45° is a natural holding angle
+      tiltRef.current = {
+        x: Math.max(-1, Math.min(1, isLandscape ? fb : lr)),
+        y: Math.max(-1, Math.min(1, isLandscape ? -lr : fb)),
+      };
+    };
+    window.addEventListener("deviceorientation", onOrientation);
 
     // ---- pointer interaction: hover sway, drag pan, pinch zoom ----
     const active = new Map<number, { x: number; y: number }>();
     let dragDistance = 0;
     let lastPinchDist = 0;
+    let gyroAsked = false;
 
     const onPointerDown = (e: PointerEvent) => {
+      // iOS 13+ needs a user gesture to unlock motion sensors
+      if (!gyroAsked) {
+        gyroAsked = true;
+        const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
+        DOE?.requestPermission?.().catch(() => {});
+      }
       canvas.setPointerCapture(e.pointerId);
       active.set(e.pointerId, { x: e.clientX, y: e.clientY });
       dragDistance = 0;
@@ -199,8 +225,10 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
       const toScreenY = (wy: number) => h / 2 + (wy - 0.5) * h * z + panY;
       const cx = toScreenX(0.5);
       const cy = toScreenY(0.5);
-      const px = pointerRef.current.x;
-      const py = pointerRef.current.y;
+      // pointer position and gyroscope tilt both feed the parallax offset
+      // (tilt is centered at 0.5 so a level phone behaves like a centered cursor)
+      const px = pointerRef.current.x + tiltRef.current.x * 0.5;
+      const py = pointerRef.current.y + tiltRef.current.y * 0.5;
       const breath = 1 + Math.sin(t / 1800) * 0.02 * mi;
       const nodeScale = Math.min(1.7, 0.75 + 0.35 * z); // grow gently with zoom
       const accent = getComputedStyle(document.documentElement).getPropertyValue("--ee-accent").trim() || "#7df";
@@ -314,6 +342,8 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
       canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("wheel", onWheel);
       canvas.removeEventListener("click", onClick);
+      window.removeEventListener("orientationchange", onOrient);
+      window.removeEventListener("deviceorientation", onOrientation);
     };
   }, []);
 
