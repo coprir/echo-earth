@@ -35,9 +35,9 @@ export default function VitalsHUD({ env, theme, travel }: { env: EnvSignals; the
       initial={{ opacity: 0, y: -16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4, duration: 1 }}
-      className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-3 pointer-events-none"
+      className="fixed top-0 inset-x-0 z-30 flex items-center gap-3 px-4 py-3 pointer-events-none"
     >
-      <div className="flex items-center gap-3 pointer-events-auto">
+      <div className="flex items-center gap-3 shrink-0 pointer-events-auto">
         <span className="ee-breathe inline-block w-3 h-3 rounded-full" style={{ background: "var(--ee-accent)", boxShadow: "0 0 14px var(--ee-glow)" }} aria-hidden />
         <div>
           <p className="text-[11px] font-medium tracking-[0.35em] uppercase ee-glow-text">echo earth</p>
@@ -47,24 +47,27 @@ export default function VitalsHUD({ env, theme, travel }: { env: EnvSignals; the
         </div>
       </div>
 
-      <div className="flex items-center gap-2 pointer-events-auto">
-        <ul className="hidden sm:flex gap-2" aria-label="What the organism senses">
-          {vitals.map((v) => (
-            <li key={v} className="ee-glass px-2.5 py-1 !rounded-full text-[10px] tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
-              {v}
-            </li>
-          ))}
-        </ul>
-        <button
-          onClick={toggleSound}
-          aria-pressed={sound}
-          aria-label={sound ? "Mute ambient sound" : "Enable ambient sound"}
-          className="ee-glass !rounded-full w-8 h-8 grid place-items-center text-xs"
-          style={{ color: sound ? "var(--ee-accent)" : "var(--ee-text-dim)" }}
-        >
-          {sound ? "◉" : "◎"}
-        </button>
-      </div>
+      {/* sensor readout — shown identically on every device; scrolls on narrow screens */}
+      <ul
+        className="flex flex-1 min-w-0 justify-end gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pointer-events-auto"
+        aria-label="What the organism senses"
+      >
+        {vitals.map((v) => (
+          <li key={v} className="ee-glass shrink-0 px-2.5 py-1 !rounded-full text-[10px] tracking-wider whitespace-nowrap" style={{ color: "var(--ee-text-dim)" }}>
+            {v}
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={toggleSound}
+        aria-pressed={sound}
+        aria-label={sound ? "Mute ambient sound" : "Enable ambient sound"}
+        className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
+        style={{ color: sound ? "var(--ee-accent)" : "var(--ee-text-dim)" }}
+      >
+        {sound ? "◉" : "◎"}
+      </button>
     </motion.header>
   );
 }
