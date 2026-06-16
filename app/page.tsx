@@ -24,6 +24,7 @@ import VitalsHUD from "@/components/hud/VitalsHUD";
 import Consciousness from "@/components/organism/Consciousness";
 import AtmospherePicker from "@/components/discovery/AtmospherePicker";
 import Concierge from "@/components/concierge/Concierge";
+import About from "@/components/about/About";
 
 const ParticleField = dynamic(() => import("@/components/organism/ParticleField"), { ssr: false });
 
@@ -37,6 +38,7 @@ export default function EchoEarth() {
   const [selected, setSelected] = useState<Place | null>(null);
   const [dataMode, setDataMode] = useState<"live" | "echo" | null>(null);
   const [mapZoom, setMapZoom] = useState(1);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -121,7 +123,9 @@ export default function EchoEarth() {
 
       <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
 
-      <VitalsHUD env={env} theme={theme} travel={mind.travel} />
+      <VitalsHUD env={env} theme={theme} travel={mind.travel} onAbout={() => setAboutOpen(true)} />
+
+      <About open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
       {/* the City Consciousness — the organism's living voice */}
       {awake && <Consciousness env={env} category={category} placeCount={visiblePlaces.length} />}

@@ -12,7 +12,7 @@ import type { TravelMode } from "@/engine/useAdaptiveMind";
 import { ambient } from "@/engine/audio";
 import { useState } from "react";
 
-export default function VitalsHUD({ env, theme, travel }: { env: EnvSignals; theme: Theme; travel: TravelMode }) {
+export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSignals; theme: Theme; travel: TravelMode; onAbout: () => void }) {
   const [sound, setSound] = useState(false);
 
   const toggleSound = () => {
@@ -58,6 +58,15 @@ export default function VitalsHUD({ env, theme, travel }: { env: EnvSignals; the
           </li>
         ))}
       </ul>
+
+      <button
+        onClick={onAbout}
+        aria-label="What is Echo Earth?"
+        className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
+        style={{ color: "var(--ee-text-dim)" }}
+      >
+        ?
+      </button>
 
       <button
         onClick={toggleSound}
