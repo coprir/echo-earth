@@ -12,6 +12,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CategoryId } from "@/lib/places";
 import type { Atmosphere } from "./environment";
+import type { Energy } from "@/lib/itinerary";
 
 export type MoodMode = "explore" | "latenight" | "rainyday" | "cheapeats" | "luxury" | "hiddengems";
 
@@ -24,12 +25,14 @@ interface MindState {
   mode: MoodMode;
   travel: TravelMode;
   atmosphere: Atmosphere; // chosen synthetic weather, persisted
+  energy: Energy | null; // last concierge energy, persisted — the mind remembers your vibe
   lastSpeedMps: number;
   nightQuietBias: number; // 0..1 learned preference for quiet places after dark
   noticeCategory: (c: CategoryId, weight?: number) => void;
   recordDiscovery: () => void;
   setMode: (m: MoodMode) => void;
   setAtmosphere: (a: Atmosphere) => void;
+  setEnergy: (e: Energy) => void;
   reportSpeed: (metersPerSecond: number) => void;
   wake: () => void;
   /** Categories ranked by learned affinity, strongest first. */
@@ -45,6 +48,7 @@ export const useAdaptiveMind = create<MindState>()(
       mode: "explore",
       travel: "still",
       atmosphere: "auto",
+      energy: null,
       lastSpeedMps: 0,
       nightQuietBias: 0,
 
@@ -69,6 +73,8 @@ export const useAdaptiveMind = create<MindState>()(
       setMode: (m) => set({ mode: m }),
 
       setAtmosphere: (a) => set({ atmosphere: a }),
+
+      setEnergy: (e) => set({ energy: e }),
 
       reportSpeed: (mps) => {
         const travel: TravelMode = mps > 6 ? "driving" : mps > 0.7 ? "walking" : "still";

@@ -23,6 +23,7 @@ import PlaceDetail from "@/components/discovery/PlaceDetail";
 import VitalsHUD from "@/components/hud/VitalsHUD";
 import Consciousness from "@/components/organism/Consciousness";
 import AtmospherePicker from "@/components/discovery/AtmospherePicker";
+import Concierge from "@/components/concierge/Concierge";
 
 const ParticleField = dynamic(() => import("@/components/organism/ParticleField"), { ssr: false });
 
@@ -94,6 +95,14 @@ export default function EchoEarth() {
     useAdaptiveMind.getState().noticeCategory(id);
   }, []);
 
+  // concierge hands a journey stop to the map: switch category, fly to it, open it
+  const focusPlace = useCallback((p: Place) => {
+    setCategory(p.category);
+    setSelected(p);
+    ambient.blip("select");
+    useAdaptiveMind.getState().noticeCategory(p.category, 0.15);
+  }, []);
+
   const pickPlace = useCallback((p: Place) => {
     setSelected(p);
     ambient.blip("select");
@@ -119,6 +128,9 @@ export default function EchoEarth() {
 
       {/* Digital Weather System — synthetic atmosphere selector */}
       {awake && <AtmospherePicker />}
+
+      {/* AI City Concierge — energy intent → personalized movement journey */}
+      {awake && <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} />}
 
       {/* the discovery field */}
       <motion.section
