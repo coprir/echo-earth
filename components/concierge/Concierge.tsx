@@ -20,7 +20,7 @@ import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
 
 type Step = "intent" | "loading" | "journey";
 
-export default function Concierge({ lat, lon, city, onFocusPlace }: { lat: number | null; lon: number | null; city: string | null; onFocusPlace: (p: Place) => void }) {
+export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = true }: { lat: number | null; lon: number | null; city: string | null; onFocusPlace: (p: Place) => void; autoOpen?: boolean }) {
   const mind = useAdaptiveMind();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("intent");
@@ -29,22 +29,23 @@ export default function Concierge({ lat, lon, city, onFocusPlace }: { lat: numbe
   const [energy, setEnergyState] = useState<Energy | null>(null);
   const offsetRef = useRef(0);
 
-  // auto-open once per browser session as the cinematic entry
+  // auto-open once per browser session — but only after the intro has finished
+  // (autoOpen flips true when the About panel is dismissed / already seen)
   useEffect(() => {
+    if (!autoOpen) return;
     let seen = true;
     try {
       seen = sessionStorage.getItem("ee-concierge-seen") === "1";
     } catch {}
-    if (!seen) {
-      const t = setTimeout(() => {
-        setOpen(true);
-        try {
-          sessionStorage.setItem("ee-concierge-seen", "1");
-        } catch {}
-      }, 1600);
-      return () => clearTimeout(t);
-    }
-  }, []);
+    if (seen) return;
+    const t = setTimeout(() => {
+      setOpen(true);
+      try {
+        sessionStorage.setItem("ee-concierge-seen", "1");
+      } catch {}
+    }, 900);
+    return () => clearTimeout(t);
+  }, [autoOpen]);
 
   async function generate(e: Energy, offset = 0) {
     setEnergyState(e);

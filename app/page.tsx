@@ -39,11 +39,37 @@ export default function EchoEarth() {
   const [dataMode, setDataMode] = useState<"live" | "echo" | null>(null);
   const [mapZoom, setMapZoom] = useState(1);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     useAdaptiveMind.getState().wake();
     return watchTravelMode();
+  }, []);
+
+  // onboarding sequence: once the planet has dived in, greet new visitors with
+  // the "what is this?" intro; returning-this-session visitors skip straight to
+  // the concierge. Closing the intro releases the concierge auto-open.
+  useEffect(() => {
+    if (!awake) return;
+    let seen = true;
+    try {
+      seen = sessionStorage.getItem("ee-about-seen") === "1";
+    } catch {}
+    if (seen) {
+      setIntroDone(true);
+      return;
+    }
+    const t = setTimeout(() => setAboutOpen(true), 700);
+    return () => clearTimeout(t);
+  }, [awake]);
+
+  const closeAbout = useCallback(() => {
+    setAboutOpen(false);
+    try {
+      sessionStorage.setItem("ee-about-seen", "1");
+    } catch {}
+    setIntroDone(true);
   }, []);
 
   // ambient audio follows the mood and reacts to pointer energy
@@ -125,7 +151,7 @@ export default function EchoEarth() {
 
       <VitalsHUD env={env} theme={theme} travel={mind.travel} onAbout={() => setAboutOpen(true)} />
 
-      <About open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <About open={aboutOpen} onClose={closeAbout} />
 
       {/* the City Consciousness — the organism's living voice */}
       {awake && <Consciousness env={env} category={category} placeCount={visiblePlaces.length} />}
@@ -134,7 +160,7 @@ export default function EchoEarth() {
       {awake && <AtmospherePicker />}
 
       {/* AI City Concierge — energy intent → personalized movement journey */}
-      {awake && <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} />}
+      {awake && <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} autoOpen={introDone} />}
 
       {/* the discovery field */}
       <motion.section
