@@ -146,6 +146,7 @@ export interface JourneyStop {
   place: Place;
   note: string;
   index: number;
+  stepKey: number; // original template step index, for translating the note
 }
 
 export interface Journey {
@@ -179,7 +180,7 @@ export function composeJourney(energy: Energy, placesByCategory: Partial<Record<
     if (!pool.length) return;
     const pick = pool[(offset + i) % pool.length] ?? pool[0];
     used.add(pick.id);
-    stops.push({ place: pick, note: step.note, index: stops.length + 1 });
+    stops.push({ place: pick, note: step.note, index: stops.length + 1, stepKey: i });
   });
 
   const spanM = stops.reduce((sum, s, i) => (i === 0 ? 0 : sum + Math.abs(s.place.distanceM - stops[i - 1].place.distanceM)), 0);

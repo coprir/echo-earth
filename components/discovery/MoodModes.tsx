@@ -6,14 +6,15 @@
  */
 
 import { motion } from "framer-motion";
-import { MODE_META } from "@/lib/recommend";
 import type { MoodMode } from "@/engine/useAdaptiveMind";
+import { useT } from "@/lib/i18n";
 
 const MODES: MoodMode[] = ["explore", "latenight", "rainyday", "cheapeats", "luxury", "hiddengems"];
 
 export default function MoodModes({ active, onPick }: { active: MoodMode; onPick: (m: MoodMode) => void }) {
+  const { t } = useT();
   return (
-    <div role="radiogroup" aria-label="Discovery mood" className="flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div role="radiogroup" aria-label={t("mode.aria")} className="flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {MODES.map((m) => {
         const isActive = m === active;
         return (
@@ -31,7 +32,7 @@ export default function MoodModes({ active, onPick }: { active: MoodMode; onPick
               boxShadow: isActive ? "0 0 18px var(--ee-glow)" : "none",
             }}
           >
-            {MODE_META[m].label}
+            {t(`mode.${m}`)}
           </motion.button>
         );
       })}

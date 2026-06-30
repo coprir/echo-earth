@@ -16,6 +16,7 @@
 import { useEffect, useRef } from "react";
 import type { Place } from "@/lib/places";
 import { categoryById } from "@/lib/places";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   places: Place[];
@@ -43,6 +44,7 @@ const MIN_ZOOM = 0.6;
 const MAX_ZOOM = 8;
 
 export default function NeuralMap({ places, selectedId, onSelect, motionIntensity, onZoom }: Props) {
+  const { t } = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<Node[]>([]);
   const pointerRef = useRef({ x: 0.5, y: 0.5 });
@@ -364,14 +366,14 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
       <canvas
         ref={canvasRef}
         className="w-full h-full cursor-grab active:cursor-grabbing [touch-action:none]"
-        aria-label="Neural map of nearby places — scroll or pinch to zoom, drag to pan"
+        aria-label={t("map.aria")}
         role="img"
       />
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5" role="group" aria-label="Map zoom controls">
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5" role="group" aria-label={t("map.zoomgroup")}>
         {[
-          { glyph: "+", label: "Zoom in", action: () => buttonZoom(1.5) },
-          { glyph: "−", label: "Zoom out", action: () => buttonZoom(1 / 1.5) },
-          { glyph: "◌", label: "Reset view", action: resetView },
+          { glyph: "+", label: t("map.zoomin"), action: () => buttonZoom(1.5) },
+          { glyph: "−", label: t("map.zoomout"), action: () => buttonZoom(1 / 1.5) },
+          { glyph: "◌", label: t("map.reset"), action: resetView },
         ].map((b) => (
           <button
             key={b.label}
@@ -385,7 +387,7 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
         ))}
       </div>
       <p className="absolute bottom-1 left-3 text-[9px] tracking-wider pointer-events-none" style={{ color: "var(--ee-text-dim)" }}>
-        scroll / pinch to zoom · drag to pan
+        {t("map.hint")}
       </p>
     </div>
   );

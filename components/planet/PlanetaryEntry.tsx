@@ -13,10 +13,12 @@ import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import type { EnvSignals, Theme } from "@/engine/environment";
+import { useT } from "@/lib/i18n";
 
 const LivingEarth = dynamic(() => import("./LivingEarth"), { ssr: false });
 
 export default function PlanetaryEntry({ env, theme, onDone }: { env: EnvSignals; theme: Theme; onDone: () => void }) {
+  const { t } = useT();
   const [stage, setStage] = useState(0);
   const [diving, setDiving] = useState(false);
   const [gone, setGone] = useState(false);
@@ -24,10 +26,10 @@ export default function PlanetaryEntry({ env, theme, onDone }: { env: EnvSignals
   onDoneRef.current = onDone;
 
   const lines = [
-    "Earth is locating you…",
-    env.city ? `a presence near ${env.city}` : "a presence on the surface",
-    theme.label === "Survival Mode" ? "conserving — entering quietly" : `the planet is ${theme.label.toLowerCase()} today`,
-    "synchronizing. fall with me…",
+    t("entry.locating"),
+    env.city ? t("entry.presence", { city: env.city }) : t("entry.presence.generic"),
+    theme.label === "Survival Mode" ? t("entry.survival") : t("entry.mood", { mood: theme.label.toLowerCase() }),
+    t("entry.sync"),
   ];
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function PlanetaryEntry({ env, theme, onDone }: { env: EnvSignals
           {/* planetary narration */}
           <div className="pointer-events-none absolute inset-x-0 bottom-[14vh] flex flex-col items-center gap-2 px-8 text-center">
             <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: "var(--ee-text-dim)" }}>
-              echo earth
+              {t("entry.kicker")}
             </p>
             <AnimatePresence mode="wait">
               <motion.p

@@ -14,6 +14,7 @@ import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
 import { rankCategories, filterPlaces } from "@/lib/recommend";
+import { useLang, useT, dirOf } from "@/lib/i18n";
 import PlanetaryEntry from "@/components/planet/PlanetaryEntry";
 import NeuralMap from "@/components/map/NeuralMap";
 import LivingMap from "@/components/map/LivingMap";
@@ -31,6 +32,9 @@ const ParticleField = dynamic(() => import("@/components/organism/ParticleField"
 export default function EchoEarth() {
   const { env, theme } = useEnvironment();
   const mind = useAdaptiveMind();
+  const { t, lang } = useT();
+  const autoFromCountry = useLang((s) => s.autoFromCountry);
+  const autoFromNavigator = useLang((s) => s.autoFromNavigator);
   const [awake, setAwake] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState<CategoryId>("cafes");
@@ -44,8 +48,20 @@ export default function EchoEarth() {
   useEffect(() => {
     setMounted(true);
     useAdaptiveMind.getState().wake();
+    autoFromNavigator();
     return watchTravelMode();
-  }, []);
+  }, [autoFromNavigator]);
+
+  // language: auto-select from IP country (unless the visitor chose manually)
+  useEffect(() => {
+    if (env.country) autoFromCountry(env.country);
+  }, [env.country, autoFromCountry]);
+
+  // reflect language + direction on <html> (RTL for Arabic)
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = dirOf(lang);
+  }, [lang]);
 
   // onboarding sequence: once the planet has dived in, greet new visitors with
   // the "what is this?" intro; returning-this-session visitors skip straight to
@@ -168,7 +184,7 @@ export default function EchoEarth() {
         initial={{ opacity: 0 }}
         animate={{ opacity: awake ? 1 : 0 }}
         transition={{ duration: 1.6, ease: "easeOut" }}
-        aria-label="Discovery field"
+        aria-label={t("field.aria")}
       >
         {/* neural city */}
         <div className="relative flex-1 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
@@ -183,13 +199,13 @@ export default function EchoEarth() {
           {visiblePlaces.length === 0 && (
             <div className="absolute inset-0 grid place-items-center pointer-events-none">
               <p className="text-xs tracking-[0.3em] uppercase animate-pulse" style={{ color: "var(--ee-text-dim)" }}>
-                growing the city…
+                {t("field.growing")}
               </p>
             </div>
           )}
           {dataMode === "echo" && (
             <p className="absolute bottom-1 right-3 text-[9px] tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
-              demo city · no API key
+              {t("field.demo")}
             </p>
           )}
         </div>

@@ -1,43 +1,31 @@
 "use client";
 
 /**
- * Consciousness — the visible voice of the City Consciousness AI.
- *
- * A single line of poetic narration that fades in, lingers, and dissolves,
- * recomposing itself from the live Observation every ~14s (sooner if the
- * context shifts sharply — weather change, mode switch, going idle). The tone
- * tints the glow so the words feel emotionally colored, not just informational.
+ * Consciousness — the visible voice of the City Consciousness AI, now spoken in
+ * the visitor's language. It composes a short line from the live context
+ * (atmosphere, weather, time, travel, idleness, learned taste) and recomposes
+ * on a gentle cadence — recombining translated fragments so the voice stays
+ * alive in every language.
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import type { EnvSignals } from "@/engine/environment";
-import { compose, greeting, Observation, Thought } from "@/engine/consciousness";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { EnvSignals, TimePhase } from "@/engine/environment";
 import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
+import { useT } from "@/lib/i18n";
 
-const TONE_COLOR: Record<Thought["tone"], string> = {
-  calm: "hsl(165, 70%, 72%)",
-  curious: "hsl(48, 90%, 72%)",
-  electric: "hsl(305, 90%, 75%)",
-  tender: "hsl(20, 85%, 75%)",
-  mysterious: "var(--ee-accent)",
-};
+function phaseOf(d: Date): TimePhase {
+  const h = d.getHours();
+  return h < 5 ? "latenight" : h < 8 ? "dawn" : h < 17 ? "day" : h < 20 ? "dusk" : "night";
+}
 
-export default function Consciousness({
-  env,
-  category,
-  placeCount,
-}: {
-  env: EnvSignals;
-  category: string;
-  placeCount: number;
-}) {
+export default function Consciousness({ env }: { env: EnvSignals; category: string; placeCount: number }) {
   const mind = useAdaptiveMind();
-  const [thought, setThought] = useState<Thought | null>(null);
+  const { t, lang } = useT();
+  const [line, setLine] = useState<string | null>(null);
   const seedRef = useRef(env.visitorSeed * 1000);
   const lastTouchRef = useRef(Date.now());
 
-  // track idleness from any interaction
   useEffect(() => {
     const touch = () => (lastTouchRef.current = Date.now());
     window.addEventListener("pointerdown", touch);
@@ -50,58 +38,53 @@ export default function Consciousness({
     };
   }, []);
 
-  const observe = (): Observation => ({
-    env,
-    atmosphere: mind.atmosphere,
-    travel: mind.travel,
-    mode: mind.mode,
-    energy: env.motionEnergy,
-    favorites: mind.favorites(),
-    category,
-    idleMs: Date.now() - lastTouchRef.current,
-    placeCount,
-  });
+  const compose = (seed: number): string => {
+    const cands: { text: string; weight: number }[] = [];
+    const weatherActive = env.weather.kind !== "unknown" && env.weather.kind !== "clear";
+    const idle = Date.now() - lastTouchRef.current;
 
-  // first words
-  useEffect(() => {
-    const t = setTimeout(() => setThought(greeting(observe())), 600);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (mind.atmosphere !== "auto") cands.push({ text: t(`atmo.${mind.atmosphere}.whisper`), weight: 6 });
+    if (idle > 18000) cands.push({ text: t("nar.idle"), weight: 5 });
+    if (mind.travel === "driving") cands.push({ text: t("nar.driving"), weight: 7 });
+    else if (mind.travel === "walking") cands.push({ text: t("nar.walking"), weight: 4 });
+    if (weatherActive) cands.push({ text: t("nar.weather", { w: t(`weather.${env.weather.kind}`) }), weight: 5 });
+    const favs = mind.favorites();
+    if (favs.length && Math.abs(Math.sin(seed * 2.3)) > 0.6) cands.push({ text: t("nar.returning", { fav: t(`cat.${favs[0]}`) }), weight: 4 });
+    cands.push({ text: t("nar.phase", { p: t(`phase.${phaseOf(env.now)}`) }), weight: 2 });
+    if (env.city) cands.push({ text: t("nar.sync", { city: env.city }), weight: 1 });
 
-  // recompose on a gentle cadence
-  useEffect(() => {
-    const id = setInterval(() => {
-      seedRef.current += 1.618;
-      setThought(compose(observe(), seedRef.current));
-    }, 14000);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const scored = cands.map((c, i) => ({ c, s: c.weight * (0.6 + 0.8 * Math.abs(Math.sin(seed * 1.7 + i))) }));
+    scored.sort((a, b) => b.s - a.s);
+    return scored[0]?.c.text ?? "";
+  };
 
-  // react quickly when context shifts sharply
+  // first words + steady cadence; rebuilds when language or context shifts so the
+  // voice always speaks the current language (the closure captures the live t)
   useEffect(() => {
-    seedRef.current += 0.91;
-    const t = setTimeout(() => setThought(compose(observe(), seedRef.current)), 700);
-    return () => clearTimeout(t);
+    const first = setTimeout(() => setLine(compose((seedRef.current += 0.91))), 500);
+    const id = setInterval(() => setLine(compose((seedRef.current += 1.618))), 14000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [env.weather.kind, mind.mode, mind.atmosphere, mind.travel]);
+  }, [lang, env.weather.kind, mind.mode, mind.atmosphere, mind.travel]);
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-[4.5rem] z-20 flex justify-center px-6" aria-live="polite">
       <AnimatePresence mode="wait">
-        {thought && (
+        {line && (
           <motion.p
-            key={thought.text}
+            key={line}
             initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -8, filter: "blur(8px)" }}
             transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-[34rem] text-center text-[0.95rem] font-light leading-relaxed tracking-wide"
-            style={{ color: "var(--ee-text)", textShadow: `0 0 28px ${TONE_COLOR[thought.tone]}` }}
+            style={{ color: "var(--ee-text)", textShadow: "0 0 28px var(--ee-glow)" }}
           >
-            <span className="mr-2 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full ee-breathe align-middle" style={{ background: TONE_COLOR[thought.tone], boxShadow: `0 0 10px ${TONE_COLOR[thought.tone]}` }} />
-            {thought.text}
+            <span className="mr-2 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full ee-breathe align-middle" style={{ background: "var(--ee-accent)", boxShadow: "0 0 10px var(--ee-accent)" }} />
+            {line}
           </motion.p>
         )}
       </AnimatePresence>

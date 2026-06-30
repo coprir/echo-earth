@@ -11,9 +11,12 @@ import type { EnvSignals, Theme } from "@/engine/environment";
 import type { TravelMode } from "@/engine/useAdaptiveMind";
 import { ambient } from "@/engine/audio";
 import { useState } from "react";
+import { useT } from "@/lib/i18n";
+import LangSwitcher from "@/components/i18n/LangSwitcher";
 
 export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSignals; theme: Theme; travel: TravelMode; onAbout: () => void }) {
   const [sound, setSound] = useState(false);
+  const { t } = useT();
 
   const toggleSound = () => {
     if (sound) ambient.stop();
@@ -22,12 +25,12 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
   };
 
   const vitals: string[] = [
-    env.city ? `${env.city}${env.country ? ", " + env.country : ""}` : "locating…",
-    `${env.weather.kind}${env.weather.tempC != null ? ` ${env.weather.tempC}°` : ""}`,
-    `${theme.phase} · ${theme.season}`,
-    travel !== "still" ? travel : null,
+    env.city ? `${env.city}${env.country ? ", " + env.country : ""}` : t("hud.locating"),
+    `${t(`weather.${env.weather.kind}`)}${env.weather.tempC != null ? ` ${env.weather.tempC}°` : ""}`,
+    `${t(`phase.${theme.phase}`)} · ${t(`season.${theme.season}`)}`,
+    travel !== "still" ? t(`travel.${travel}`) : null,
     env.batteryLevel != null ? `⚡ ${Math.round(env.batteryLevel * 100)}%` : null,
-    env.netSpeed !== "unknown" ? `net ${env.netSpeed}` : null,
+    env.netSpeed !== "unknown" ? t(`net.${env.netSpeed}`) : null,
   ].filter(Boolean) as string[];
 
   return (
@@ -42,7 +45,7 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
         <div>
           <p className="text-[11px] font-medium tracking-[0.35em] uppercase ee-glow-text">echo earth</p>
           <p className="text-[10px] tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
-            mood: {theme.label.toLowerCase()}
+            {t("hud.mood")}: {theme.label.toLowerCase()}
           </p>
         </div>
       </div>
@@ -50,7 +53,7 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
       {/* sensor readout — shown identically on every device; scrolls on narrow screens */}
       <ul
         className="flex flex-1 min-w-0 justify-end gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pointer-events-auto"
-        aria-label="What the organism senses"
+        aria-label={t("hud.senses")}
       >
         {vitals.map((v) => (
           <li key={v} className="ee-glass shrink-0 px-2.5 py-1 !rounded-full text-[10px] tracking-wider whitespace-nowrap" style={{ color: "var(--ee-text-dim)" }}>
@@ -59,9 +62,11 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
         ))}
       </ul>
 
+      <LangSwitcher />
+
       <button
         onClick={onAbout}
-        aria-label="What is Echo Earth?"
+        aria-label={t("hud.about")}
         className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
         style={{ color: "var(--ee-text-dim)" }}
       >
@@ -71,7 +76,7 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
       <button
         onClick={toggleSound}
         aria-pressed={sound}
-        aria-label={sound ? "Mute ambient sound" : "Enable ambient sound"}
+        aria-label={sound ? t("hud.sound.off") : t("hud.sound.on")}
         className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
         style={{ color: sound ? "var(--ee-accent)" : "var(--ee-text-dim)" }}
       >

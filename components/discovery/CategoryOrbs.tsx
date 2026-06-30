@@ -8,6 +8,7 @@
 
 import { motion } from "framer-motion";
 import type { Category, CategoryId } from "@/lib/places";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   categories: Category[];
@@ -16,8 +17,9 @@ interface Props {
 }
 
 export default function CategoryOrbs({ categories, active, onPick }: Props) {
+  const { t } = useT();
   return (
-    <nav aria-label="Place categories" className="flex gap-2.5 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav aria-label={t("cat.aria")} className="flex gap-2.5 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {categories.map((c, i) => {
         const isActive = c.id === active;
         return (
@@ -44,7 +46,7 @@ export default function CategoryOrbs({ categories, active, onPick }: Props) {
               className="inline-block w-2 h-2 rounded-full ee-breathe"
               style={{ background: `hsl(${c.hue}, 90%, 65%)`, boxShadow: `0 0 8px hsl(${c.hue}, 90%, 65%)` }}
             />
-            {c.label}
+            {t(`cat.${c.id}`)}
           </motion.button>
         );
       })}

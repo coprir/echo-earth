@@ -15,13 +15,15 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { CategoryId, Place } from "@/lib/places";
-import { ENERGIES, Energy, Journey, composeJourney, energyCategories, journeyWhisper, stopIcon } from "@/lib/itinerary";
+import { ENERGIES, Energy, Journey, composeJourney, energyCategories, stopIcon } from "@/lib/itinerary";
 import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
+import { useT } from "@/lib/i18n";
 
 type Step = "intent" | "loading" | "journey";
 
 export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = true }: { lat: number | null; lon: number | null; city: string | null; onFocusPlace: (p: Place) => void; autoOpen?: boolean }) {
   const mind = useAdaptiveMind();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("intent");
   const [local, setLocal] = useState(true); // live like a local vs explore like a tourist
@@ -91,8 +93,8 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
           setOpen(true);
           if (!journey) setStep("intent");
         }}
-        aria-label="Open the AI city concierge"
-        title="City concierge"
+        aria-label={t("con.open")}
+        title={t("con.title")}
         className="ee-glass ee-pulse fixed right-3 bottom-40 z-30 grid h-12 w-12 place-items-center !rounded-full text-lg pointer-events-auto"
         style={{ color: "var(--ee-accent)" }}
       >
@@ -111,7 +113,7 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
           >
             <motion.div
               role="dialog"
-              aria-label="City concierge"
+              aria-label={t("con.title")}
               onClick={(e) => e.stopPropagation()}
               initial={{ y: 40, opacity: 0, scale: 0.97 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -123,13 +125,13 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: "var(--ee-text-dim)" }}>
-                    echo earth · concierge
+                    {t("con.kicker")}
                   </p>
                   <h2 className="mt-1 text-lg font-light ee-glow-text" style={{ color: "var(--ee-text)" }}>
-                    {step === "journey" ? journey?.title : "what energy are you looking for?"}
+                    {step === "journey" && energy ? t(`journey.${energy}.title`) : t("con.question")}
                   </h2>
                 </div>
-                <button onClick={close} aria-label="Close concierge" className="rounded-full w-7 h-7 grid place-items-center text-xs shrink-0" style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}>
+                <button onClick={close} aria-label={t("con.close")} className="rounded-full w-7 h-7 grid place-items-center text-xs shrink-0" style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}>
                   ✕
                 </button>
               </div>
@@ -146,20 +148,20 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                         style={{ background: "var(--ee-surface)", border: "1px solid var(--ee-line)" }}
                       >
                         <span className="text-base" style={{ color: "var(--ee-accent)" }}>
-                          {e.glyph} <span className="text-sm" style={{ color: "var(--ee-text)" }}>{e.label}</span>
+                          {e.glyph} <span className="text-sm" style={{ color: "var(--ee-text)" }}>{t(`energy.${e.id}.label`)}</span>
                         </span>
                         <span className="text-[11px] italic leading-snug" style={{ color: "var(--ee-text-dim)" }}>
-                          {e.question}
+                          {t(`energy.${e.id}.q`)}
                         </span>
                       </button>
                     ))}
                   </div>
 
                   {/* tourist vs local */}
-                  <div className="mt-4 flex items-center gap-2" role="radiogroup" aria-label="Exploration style">
+                  <div className="mt-4 flex items-center gap-2" role="radiogroup" aria-label={t("con.style")}>
                     {[
-                      { v: false, label: "explore like a tourist" },
-                      { v: true, label: "live like a local" },
+                      { v: false, label: t("con.tourist") },
+                      { v: true, label: t("con.local") },
                     ].map((o) => (
                       <button
                         key={String(o.v)}
@@ -185,7 +187,7 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                 <div className="mt-10 flex flex-col items-center gap-3 py-8">
                   <span className="h-3 w-3 rounded-full ee-breathe" style={{ background: "var(--ee-accent)", boxShadow: "0 0 16px var(--ee-glow)" }} />
                   <p className="text-sm animate-pulse" style={{ color: "var(--ee-text-dim)" }}>
-                    tracing a route through {city ?? "the city"}…
+                    {t("con.loading", { city: city ?? t("hud.locating") })}
                   </p>
                 </div>
               )}
@@ -194,7 +196,9 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
               {step === "journey" && journey && (
                 <div className="mt-4">
                   <p className="text-sm font-light leading-relaxed" style={{ color: "var(--ee-text-dim)" }}>
-                    {journeyWhisper(journey, city)}
+                    {journey.stops.length
+                      ? t("con.whisper", { city: city ?? "—", n: journey.stops.length, lead: journey.stops[0].place.name })
+                      : t("con.empty")}
                   </p>
 
                   <ol className="mt-5 space-y-2.5">
@@ -215,7 +219,7 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                               {s.place.isGem && <span className="text-[10px] text-yellow-200/80">✦</span>}
                             </span>
                             <span className="block text-[11px] italic leading-snug" style={{ color: "var(--ee-text-dim)" }}>
-                              {s.note}
+                              {energy ? t(`journey.${energy}.${s.stepKey}`) : s.note}
                             </span>
                           </span>
                           <span className="shrink-0 text-right text-[10px] tracking-wide" style={{ color: "var(--ee-text-dim)" }}>
@@ -227,19 +231,13 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                     ))}
                   </ol>
 
-                  {journey.stops.length === 0 && (
-                    <p className="mt-4 text-sm italic" style={{ color: "var(--ee-text-dim)" }}>
-                      the city is quiet here — try another energy.
-                    </p>
-                  )}
-
                   <div className="mt-5 flex gap-2">
                     <button
                       onClick={() => energy && generate(energy, (offsetRef.current += 2))}
                       className="flex-1 rounded-xl py-2.5 text-sm transition-transform active:scale-95"
                       style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}
                     >
-                      regenerate
+                      {t("con.regen")}
                     </button>
                     <button
                       onClick={() => {
@@ -249,7 +247,7 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                       className="flex-1 rounded-xl py-2.5 text-sm transition-transform active:scale-95"
                       style={{ background: "var(--ee-accent)", color: "var(--ee-bg-deep)", boxShadow: "0 0 20px var(--ee-glow)" }}
                     >
-                      change energy
+                      {t("con.change")}
                     </button>
                   </div>
                 </div>
