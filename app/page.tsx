@@ -187,8 +187,10 @@ export default function EchoEarth() {
         transition={{ duration: 1.6, ease: "easeOut" }}
         aria-label={t("field.aria")}
       >
-        {/* neural city */}
-        <div className="relative flex-1 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
+        {/* neural city — min-h-0 lets this flex child shrink so the controls below
+            always stay on-screen (without it the map's content pushes them past
+            the viewport, where overflow-hidden clips them on shorter windows) */}
+        <div className="relative flex-1 min-h-0 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
           {env.lat != null && env.lon != null && <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />}
           <NeuralMap
             places={visiblePlaces}
@@ -211,8 +213,8 @@ export default function EchoEarth() {
           )}
         </div>
 
-        {/* controls */}
-        <div className="pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
+        {/* controls — shrink-0 so the row keeps its full height and is never clipped */}
+        <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
           <MoodModes active={mind.mode} onPick={(m) => useAdaptiveMind.getState().setMode(m)} />
           <CategoryOrbs categories={rankedCategories} active={category} onPick={pickCategory} />
         </div>
