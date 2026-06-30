@@ -26,6 +26,7 @@ import Consciousness from "@/components/organism/Consciousness";
 import AtmospherePicker from "@/components/discovery/AtmospherePicker";
 import Concierge from "@/components/concierge/Concierge";
 import About from "@/components/about/About";
+import LanguageGate from "@/components/i18n/LanguageGate";
 
 const ParticleField = dynamic(() => import("@/components/organism/ParticleField"), { ssr: false });
 
@@ -44,11 +45,16 @@ export default function EchoEarth() {
   const [mapZoom, setMapZoom] = useState(1);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [introDone, setIntroDone] = useState(false);
+  const [langChosen, setLangChosen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     useAdaptiveMind.getState().wake();
     autoFromNavigator();
+    // returning visitors (already chose a language) skip the language gate
+    try {
+      if (localStorage.getItem("ee-lang-chosen") === "1") setLangChosen(true);
+    } catch {}
     return watchTravelMode();
   }, [autoFromNavigator]);
 
@@ -162,7 +168,8 @@ export default function EchoEarth() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden">
-      {!awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
+      {!langChosen && <LanguageGate onDone={() => setLangChosen(true)} />}
+      {langChosen && !awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
 
       <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
 
