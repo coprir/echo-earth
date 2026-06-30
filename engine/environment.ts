@@ -188,12 +188,16 @@ export function resolveTheme(env: EnvSignals, atmosphere: Atmosphere = "auto"): 
     line: h(acc, 60, 60, 0.18),
   };
 
+  // The interface renders identically on every device: richness is NOT scaled
+  // by device performance tier. The only reducers are user/state conditions that
+  // apply equally everywhere — Survival Mode (battery < 15% / save-data) and the
+  // OS "reduce motion" accessibility preference.
   const tierDensity: Record<PerfTier, number> = { survival: 0, low: 0.25, mid: 0.6, high: 1 };
-  const tier: PerfTier = survival ? "survival" : env.perfTier;
+  const tier: PerfTier = survival ? "survival" : "high";
 
   // synthetic atmospheres bend the motion personality
   const moodMotion = atmosphere === "chaos" ? 1.25 : atmosphere === "calmpulse" || atmosphere === "midnight" ? 0.5 : 1;
-  const baseMotion = survival ? 0.15 : tier === "low" ? 0.45 : tier === "mid" ? 0.75 : 1;
+  const baseMotion = survival ? 0.15 : 1;
 
   return {
     id: `${mood.label}-${phase}-${s}-${tick}-${atmosphere}`,
@@ -206,7 +210,7 @@ export function resolveTheme(env: EnvSignals, atmosphere: Atmosphere = "auto"): 
       env.prefersReducedMotion ? 0 : tierDensity[tier] * (0.6 + 0.4 * env.motionEnergy) * (synthetic ? 1.25 : 1),
     breathSeconds: survival ? 12 : atmosphere === "calmpulse" ? 11 : atmosphere === "chaos" ? 4.5 : phase === "latenight" ? 9 : 6.5,
     motionIntensity: env.prefersReducedMotion ? 0 : Math.min(1.3, baseMotion * moodMotion),
-    glassBlur: tier === "survival" || tier === "low" ? 6 : 18,
+    glassBlur: tier === "survival" ? 6 : 18,
     fontMood: mood.font,
     audioMood: mood.audio,
   };

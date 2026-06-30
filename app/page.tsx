@@ -181,7 +181,7 @@ export default function EchoEarth() {
 
       {/* the discovery field */}
       <motion.section
-        className="relative z-10 flex flex-col h-dvh pt-24 landscape:pt-20"
+        className="relative z-10 flex flex-col h-dvh pt-24"
         initial={{ opacity: 0 }}
         animate={{ opacity: awake ? 1 : 0 }}
         transition={{ duration: 1.6, ease: "easeOut" }}
