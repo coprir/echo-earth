@@ -15,7 +15,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type Lang = "en" | "ar" | "fr" | "zh" | "es" | "ru" | "el" | "de";
+export type Lang = "en" | "ar" | "fr" | "zh" | "es" | "ru" | "el" | "tr" | "de";
 
 export const LANGS: { code: Lang; label: string; dir: "ltr" | "rtl" }[] = [
   { code: "en", label: "English", dir: "ltr" },
@@ -25,8 +25,18 @@ export const LANGS: { code: Lang; label: string; dir: "ltr" | "rtl" }[] = [
   { code: "es", label: "Español", dir: "ltr" },
   { code: "ru", label: "Русский", dir: "ltr" },
   { code: "el", label: "Ελληνικά", dir: "ltr" },
+  { code: "tr", label: "Türkçe", dir: "ltr" },
   { code: "de", label: "Deutsch", dir: "ltr" },
 ];
+
+/**
+ * Northern Cyprus reports as country "CY" via IP, so it can't be told apart from
+ * the south by country alone. These northern cities resolve to Turkish; everyone
+ * can still choose Turkish manually from the switcher anywhere in the world.
+ */
+const NORTH_CYPRUS_CITIES = new Set(
+  ["kyrenia", "girne", "famagusta", "gazimagusa", "gazimağusa", "morphou", "guzelyurt", "güzelyurt", "iskele", "i̇skele", "trikomo", "lefke", "lapithos", "lapta"].map((c) => c.toLowerCase())
+);
 
 export const dirOf = (l: Lang): "ltr" | "rtl" => (l === "ar" ? "rtl" : "ltr");
 
@@ -39,11 +49,15 @@ set("zh", ["CN", "TW", "HK", "MO", "SG"]);
 set("es", ["ES", "MX", "AR", "CO", "CL", "PE", "VE", "EC", "GT", "CU", "BO", "DO", "HN", "PY", "SV", "NI", "CR", "PA", "UY"]);
 set("ru", ["RU", "BY", "KZ", "KG", "TJ"]);
 set("el", ["GR", "CY"]);
+set("tr", ["TR"]);
 set("de", ["DE", "AT", "CH", "LI"]);
 
-export function langFromCountry(country: string | null | undefined): Lang | null {
+export function langFromCountry(country: string | null | undefined, city?: string | null): Lang | null {
   if (!country) return null;
-  return COUNTRY_LANG[country.toUpperCase()] ?? null;
+  const cc = country.toUpperCase();
+  // Northern Cyprus: same IP country as the south, distinguished by city
+  if (cc === "CY" && city && NORTH_CYPRUS_CITIES.has(city.trim().toLowerCase())) return "tr";
+  return COUNTRY_LANG[cc] ?? null;
 }
 
 export function langFromNavigator(): Lang | null {
@@ -646,6 +660,63 @@ const zh: Dict = {
   "entry.kicker": "echo earth", "entry.locating": "地球正在定位你…", "entry.presence": "在 {city} 附近的存在", "entry.presence.generic": "地表上的一个存在", "entry.mood": "今天的星球是 {mood}", "entry.survival": "节能——静默进入", "entry.sync": "同步中。与我一同坠落…",
 };
 
+const tr: Dict = {
+  "hud.locating": "konum bulunuyor…", "hud.mood": "ruh hali", "net.fast": "ağ hızlı", "net.slow": "ağ yavaş",
+  "travel.walking": "yürüyerek", "travel.driving": "araçla", "hud.about": "Echo Earth nedir?",
+  "hud.sound.on": "Ortam sesini aç", "hud.sound.off": "Sesi kapat", "hud.lang": "Dil", "hud.senses": "Organizmanın algıladıkları",
+  "weather.clear": "açık", "weather.clouds": "bulutlu", "weather.rain": "yağmur", "weather.drizzle": "çiseleme", "weather.thunder": "fırtına", "weather.snow": "kar", "weather.mist": "sis", "weather.unknown": "algılanıyor…",
+  "phase.dawn": "şafak", "phase.day": "gündüz", "phase.dusk": "alacakaranlık", "phase.night": "gece", "phase.latenight": "gecenin derinliği",
+  "season.winter": "kış", "season.spring": "ilkbahar", "season.summer": "yaz", "season.autumn": "sonbahar",
+  "about.kicker": "echo earth", "about.title": "şehir, seni dinliyor",
+  "about.intro": "Bir harita uygulaması değil — turistler ve yerliler için duygusal olarak uyum sağlayan bir şehir yoldaşı. Nereye gideceğini bulmayı, sanki gezegenin kendisi sana rehberlik ediyormuş gibi hissettirir.",
+  "about.s1.h": "seni bulan canlı bir gezegen", "about.s1.b": "Echo Earth, seni gerçek konumundan bulan sinematik bir 3B Dünya olarak açılır, ardından şehrine dalar — yakındaki yerlerin etrafında nabız gibi attığı canlı bir harita.",
+  "about.s2.h": "dünyanı algılar", "about.s2.b": "Konumunu, anlık havayı, mevsimi ve günün saatini okur; rengini, hareketini ve sesini buna göre değiştirir. Hiçbir ziyaretçi aynı şeyi görmez.",
+  "about.s3.h": "bir ortam zekâsı konuşur", "about.s3.b": "Sessiz bir ses fark ettiklerini anlatır. Atmosferi değiştirerek dünyayı Neon Fırtınası, Altın Gün Batımı, Siber Yağmur ve daha fazlasına dönüştür.",
+  "about.s4.h": "konsiyerj seni şehirde gezdirir", "about.s4.b": "✦ simgesine dokun ve aradığın enerjiyi söyle. Yakındaki gerçek yerlerden kişisel bir rota oluşturur — herhangi bir durağa dokunarak oraya uç.",
+  "about.s5.h": "seni hatırlar", "about.s5.b": "Ne kadar keşfedersen, zevkini o kadar öğrenir — her dönüşünde biraz daha kişisel olur.",
+  "about.cta": "keşfe başla", "about.close": "Kapat",
+  "con.kicker": "echo earth · konsiyerj", "con.question": "nasıl bir enerji arıyorsun?",
+  "con.tourist": "turist gibi keşfet", "con.local": "yerli gibi yaşa", "con.loading": "{city} boyunca bir rota çiziliyor…",
+  "con.regen": "yeniden oluştur", "con.change": "enerjiyi değiştir", "con.close": "Konsiyerji kapat", "con.open": "Yapay zekâ şehir konsiyerjini aç", "con.title": "Şehir konsiyerji",
+  "con.whisper": "işte {city} boyunca rotan — {n} durak, {lead} ile başlıyor. beni takip et.", "con.empty": "burada şehir sessiz — başka bir enerji dene.", "con.style": "Keşif tarzı",
+  "energy.calm.label": "Sakin", "energy.calm.q": "şehrin yavaşladığı bir yer",
+  "energy.social.label": "Sosyal", "energy.social.q": "sıcaklık, insanlar, kolay kahkaha",
+  "energy.luxurious.label": "Lüks", "energy.luxurious.q": "şehrin üst atmosferi",
+  "energy.underground.label": "Yeraltı", "energy.underground.q": "yerlilerin sakladığı sırlar",
+  "energy.romantic.label": "Romantik", "energy.romantic.q": "yumuşak ışık ve yanında biri",
+  "energy.productive.label": "Üretken", "energy.productive.q": "odak, yakıt ve ivme",
+  "energy.chaotic.label": "Kaotik", "energy.chaotic.q": "plan yok, sabaha kadar",
+  "journey.calm.title": "Yavaş Bir Akıntı", "journey.calm.sub": "şehrin sükûnetinde acelesiz bir sürüklenme",
+  "journey.social.title": "Şehrin Toplandığı Yer", "journey.social.sub": "insanlara ve açık kapılara doğru bir rota",
+  "journey.luxurious.title": "Üst Atmosfer", "journey.luxurious.sub": "nadir, zarif, şıklığa değer olan",
+  "journey.underground.title": "Yüzeyin Altında", "journey.underground.sub": "çoğu kişinin önünden geçip gittiği kapılar",
+  "journey.romantic.title": "Altın Saat Patikası", "journey.romantic.sub": "iki kişilik ve her şeyi affeden o saat için",
+  "journey.productive.title": "Odak Yolu", "journey.productive.sub": "şehrin seninle çalışmasını istediğin günler için",
+  "journey.chaotic.title": "Plan Yok, Sabaha Kadar", "journey.chaotic.sub": "başına ne geleceğine şehir karar versin",
+  "journey.calm.0": "şehrin nefes verdiği yerde başla", "journey.calm.1": "yerleşmek için sessiz bir fincan", "journey.calm.2": "gerisini su taşısın",
+  "journey.social.0": "seslerin uğultusunda ısın", "journey.social.1": "kolay kahkahayı bul", "journey.social.2": "gecenin toplandığı yer",
+  "journey.luxurious.0": "yükseklerde başla", "journey.luxurious.1": "loş bir odada nadir bir şey", "journey.luxurious.2": "şıklığa değer bir masa", "journey.luxurious.3": "her şeyin üstünde bitir",
+  "journey.underground.0": "tabelasız bir kapı", "journey.underground.1": "yerlilerin en kötü saklanan sırrı", "journey.underground.2": "basları aşağı doğru takip et",
+  "journey.romantic.0": "ışığı altına dönerken yakala", "journey.romantic.1": "iki kadeh, yavaş bir saat", "journey.romantic.2": "iki kişilik uzun bir masa",
+  "journey.productive.0": "üssünü kur", "journey.productive.1": "ipin ucunu kaçırmadan yakıt al", "journey.productive.2": "huzursuzluğu yak",
+  "journey.chaotic.0": "yüksek sesle başla", "journey.chaotic.1": "ipin ucunu kaçır", "journey.chaotic.2": "sabahın 3'ünün ödülü", "journey.chaotic.3": "gece seni nereye sürüklerse",
+  "atmo.title": "Dijital hava atmosferleri", "atmo.auto.label": "Eşzamanlı", "atmo.auto.whisper": "gerçek gökyüzüyle nefes alıyor",
+  "atmo.dream.label": "Rüya", "atmo.dream.whisper": "şehir yarı uykuda süzülüyor",
+  "atmo.neonstorm.label": "Neon Fırtınası", "atmo.neonstorm.whisper": "havada gerilim var",
+  "atmo.calmpulse.label": "Sakin Nabız", "atmo.calmpulse.whisper": "her şey bir kalp atışına yavaşlıyor",
+  "atmo.goldensunset.label": "Altın Gün Batımı", "atmo.goldensunset.whisper": "her şeyi affeden saat",
+  "atmo.cyberrain.label": "Siber Yağmur", "atmo.cyberrain.whisper": "krom sokaklar, düşen ışık",
+  "atmo.midnight.label": "Gece Yarısı Sessizliği", "atmo.midnight.whisper": "yalnızca açık kapılar uyanık",
+  "atmo.aurora.label": "Kutup Işığı", "atmo.aurora.whisper": "gökyüzü renk sızdırıyor",
+  "atmo.chaos.label": "Kaos", "atmo.chaos.whisper": "şehir kendi kurallarını unuttu", "atmo.change": "dijital havayı değiştir",
+  "mode.explore": "Keşfet", "mode.latenight": "Gece Geç", "mode.rainyday": "Yağmurlu Gün", "mode.cheapeats": "Uygun Yemek", "mode.luxury": "Lüks", "mode.hiddengems": "Gizli Cevherler", "mode.aria": "Keşif havası",
+  "cat.cafes": "Kafeler", "cat.restaurants": "Restoranlar", "cat.cocktails": "Kokteyl Barları", "cat.taverns": "Meyhaneler", "cat.clubs": "Kulüpler", "cat.hotels": "Oteller", "cat.beaches": "Plajlar", "cat.scenic": "Manzaralar", "cat.gems": "Gizli Cevherler", "cat.petrol": "Benzin İstasyonları", "cat.pharmacies": "Eczaneler", "cat.gyms": "Spor Salonları", "cat.fastfood": "Fast Food", "cat.coworking": "Ortak Çalışma", "cat.aria": "Yer kategorileri",
+  "detail.gem": "gizli cevher", "detail.open": "şu an açık", "detail.closed": "kapalı", "detail.route": "Beni oraya götür", "detail.maps": "Haritalar'da aç", "detail.demo": "echo-üretimi demo yer — gerçek şehir için bir Google Haritalar anahtarı ekle", "detail.close": "Ayrıntıları kapat",
+  "field.growing": "şehir büyüyor…", "field.demo": "demo şehir · API anahtarı yok", "field.aria": "Keşif alanı",
+  "map.hint": "yakınlaştırmak için kaydır / sıkıştır · taşımak için sürükle", "map.zoomin": "Yakınlaştır", "map.zoomout": "Uzaklaştır", "map.reset": "Görünümü sıfırla", "map.aria": "Yakındaki yerlerin sinir haritası — yakınlaştır, sürükle", "map.zoomgroup": "Yakınlaştırma kontrolleri",
+  "entry.kicker": "echo earth", "entry.locating": "Dünya seni buluyor…", "entry.presence": "{city} yakınında bir varlık", "entry.presence.generic": "yüzeyde bir varlık", "entry.mood": "gezegen bugün {mood}", "entry.survival": "tasarruf — sessizce giriliyor", "entry.sync": "eşzamanlanıyor. benimle düş…",
+};
+
 // ambient narrator lines (the City Consciousness voice), translatable
 const NAR: Record<Lang, Dict> = {
   en: {
@@ -720,9 +791,18 @@ const NAR: Record<Lang, Dict> = {
     "nar.phase": "城市正深处于它的{p}",
     "nar.returning": "你总是回到 {fav}——我记得",
   },
+  tr: {
+    "nar.sync": "{city} ile eşzamanlanıyor…",
+    "nar.idle": "acele etme — burada olacağım, sokakları dinliyorum",
+    "nar.driving": "hareket halindesin — yakıt ve hızlı sıcaklık ileride parlıyor",
+    "nar.walking": "gezinmek sana yakışıyor — yakın, sakin yerler parlıyor",
+    "nar.weather": "şu an şehrin üzerinde {w}",
+    "nar.phase": "şehir {p} vaktinin tam ortasında",
+    "nar.returning": "sürekli {fav} yerine dönüyorsun — hatırlıyorum",
+  },
 };
 
-const DICT: Record<Lang, Dict> = { en, ar, fr, zh, es, ru, el, de };
+const DICT: Record<Lang, Dict> = { en, ar, fr, zh, es, ru, el, tr, de };
 for (const l of Object.keys(DICT) as Lang[]) Object.assign(DICT[l], NAR[l]);
 
 export function translate(lang: Lang, key: string, vars?: Record<string, string | number>): string {
@@ -736,7 +816,7 @@ interface LangState {
   lang: Lang;
   manual: boolean;
   setLang: (l: Lang) => void;
-  autoFromCountry: (country: string | null | undefined) => void;
+  autoFromCountry: (country: string | null | undefined, city?: string | null) => void;
   autoFromNavigator: () => void;
 }
 
@@ -746,9 +826,9 @@ export const useLang = create<LangState>()(
       lang: "en",
       manual: false,
       setLang: (l) => set({ lang: l, manual: true }),
-      autoFromCountry: (country) => {
+      autoFromCountry: (country, city) => {
         if (get().manual) return;
-        const byCountry = langFromCountry(country);
+        const byCountry = langFromCountry(country, city);
         if (byCountry) set({ lang: byCountry });
       },
       autoFromNavigator: () => {

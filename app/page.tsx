@@ -52,10 +52,11 @@ export default function EchoEarth() {
     return watchTravelMode();
   }, [autoFromNavigator]);
 
-  // language: auto-select from IP country (unless the visitor chose manually)
+  // language: auto-select from IP country + city (unless the visitor chose
+  // manually) — city distinguishes Northern Cyprus (Turkish) from the south
   useEffect(() => {
-    if (env.country) autoFromCountry(env.country);
-  }, [env.country, autoFromCountry]);
+    if (env.country) autoFromCountry(env.country, env.city);
+  }, [env.country, env.city, autoFromCountry]);
 
   // reflect language + direction on <html> (RTL for Arabic)
   useEffect(() => {
