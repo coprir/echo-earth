@@ -6,6 +6,7 @@
  * the visitor always knows what the organism is reading.
  */
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import type { EnvSignals, Theme } from "@/engine/environment";
 import type { TravelMode } from "@/engine/useAdaptiveMind";
@@ -61,6 +62,16 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
           </li>
         ))}
       </ul>
+
+      <Link
+        href="/intel"
+        aria-label="Tourism & mobility intelligence"
+        title="Intelligence"
+        className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
+        style={{ color: "var(--ee-text-dim)" }}
+      >
+        ◇
+      </Link>
 
       <LangSwitcher />
 
