@@ -6,24 +6,14 @@
  * the visitor always knows what the organism is reading.
  */
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import type { EnvSignals, Theme } from "@/engine/environment";
 import type { TravelMode } from "@/engine/useAdaptiveMind";
-import { ambient } from "@/engine/audio";
-import { useState } from "react";
 import { useT } from "@/lib/i18n";
-import LangSwitcher from "@/components/i18n/LangSwitcher";
+import HudMenu from "@/components/hud/HudMenu";
 
 export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSignals; theme: Theme; travel: TravelMode; onAbout: () => void }) {
-  const [sound, setSound] = useState(false);
   const { t } = useT();
-
-  const toggleSound = () => {
-    if (sound) ambient.stop();
-    else ambient.start(theme.audioMood);
-    setSound(!sound);
-  };
 
   const vitals: string[] = [
     env.city ? `${env.city}${env.country ? ", " + env.country : ""}` : t("hud.locating"),
@@ -63,36 +53,7 @@ export default function VitalsHUD({ env, theme, travel, onAbout }: { env: EnvSig
         ))}
       </ul>
 
-      <Link
-        href="/intel"
-        aria-label="Tourism & mobility intelligence"
-        title="Intelligence"
-        className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
-        style={{ color: "var(--ee-text-dim)" }}
-      >
-        ◇
-      </Link>
-
-      <LangSwitcher />
-
-      <button
-        onClick={onAbout}
-        aria-label={t("hud.about")}
-        className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
-        style={{ color: "var(--ee-text-dim)" }}
-      >
-        ?
-      </button>
-
-      <button
-        onClick={toggleSound}
-        aria-pressed={sound}
-        aria-label={sound ? t("hud.sound.off") : t("hud.sound.on")}
-        className="ee-glass shrink-0 !rounded-full w-8 h-8 grid place-items-center text-xs pointer-events-auto"
-        style={{ color: sound ? "var(--ee-accent)" : "var(--ee-text-dim)" }}
-      >
-        {sound ? "◉" : "◎"}
-      </button>
+      <HudMenu onAbout={onAbout} audioMood={theme.audioMood} />
     </motion.header>
   );
 }

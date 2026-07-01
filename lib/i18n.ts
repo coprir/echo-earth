@@ -802,8 +802,23 @@ const NAR: Record<Lang, Dict> = {
   },
 };
 
+// extra UI keys added later (menu consolidation)
+const EXTRAS: Record<Lang, Dict> = {
+  en: { "hud.menu": "Menu", "hud.intel": "Intelligence", "hud.sound": "Ambient sound" },
+  fr: { "hud.menu": "Menu", "hud.intel": "Intelligence", "hud.sound": "Son ambiant" },
+  es: { "hud.menu": "Menú", "hud.intel": "Inteligencia", "hud.sound": "Sonido ambiente" },
+  de: { "hud.menu": "Menü", "hud.intel": "Intelligenz", "hud.sound": "Umgebungston" },
+  ru: { "hud.menu": "Меню", "hud.intel": "Аналитика", "hud.sound": "Фоновый звук" },
+  el: { "hud.menu": "Μενού", "hud.intel": "Αναλυτικά", "hud.sound": "Ήχος περιβάλλοντος" },
+  tr: { "hud.menu": "Menü", "hud.intel": "Analiz", "hud.sound": "Ortam sesi" },
+  ar: { "hud.menu": "القائمة", "hud.intel": "التحليلات", "hud.sound": "الصوت المحيط" },
+  zh: { "hud.menu": "菜单", "hud.intel": "智能分析", "hud.sound": "环境音" },
+};
+
 const DICT: Record<Lang, Dict> = { en, ar, fr, zh, es, ru, el, tr, de };
-for (const l of Object.keys(DICT) as Lang[]) Object.assign(DICT[l], NAR[l]);
+for (const l of Object.keys(DICT) as Lang[]) {
+  Object.assign(DICT[l], NAR[l], EXTRAS[l]);
+}
 
 export function translate(lang: Lang, key: string, vars?: Record<string, string | number>): string {
   let s = DICT[lang]?.[key] ?? DICT.en[key] ?? key;

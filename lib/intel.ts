@@ -38,6 +38,15 @@ export interface Source {
   pct: number;
 }
 
+export interface Activity {
+  mode: "live" | "echo";
+  total: number;
+  open: number;
+  openRatio: number; // 0..1 real venues open now
+  byCategory: Record<string, { total: number; open: number; avgRating: number }>;
+  sampledAt: number;
+}
+
 export interface Intel {
   energyIndex: number; // 0..100 overall city pulse
   trend: number; // -100..100 vs an hour ago
@@ -51,6 +60,24 @@ export interface Intel {
   spendEstimate: number; // avg € per visitor tonight
   weatherImpact: string;
   crowd: "sparse" | "steady" | "busy" | "surging";
+  live: boolean; // energy index grounded in real-time venue data
+  venuesOpen: number;
+  venuesTotal: number;
+}
+
+/** open-ratio (0..1) for a group of sampled categories, or null if unknown */
+function groupOpen(a: Activity | undefined, cats: string[]): number | null {
+  if (!a) return null;
+  let total = 0;
+  let open = 0;
+  for (const c of cats) {
+    const g = a.byCategory[c];
+    if (g) {
+      total += g.total;
+      open += g.open;
+    }
+  }
+  return total > 0 ? open / total : null;
 }
 
 function mulberry32(seed: number) {
@@ -99,8 +126,9 @@ export function computeIntel(opts: {
   now: Date;
   weather: WeatherKind;
   season: Season;
+  activity?: Activity;
 }): Intel {
-  const { lat, lon, now, weather, season } = opts;
+  const { lat, lon, now, weather, season, activity } = opts;
   const h = now.getHours() + now.getMinutes() / 60;
   const day = Math.floor(now.getTime() / 86400000);
   const weekend = [0, 5, 6].includes(now.getDay());
@@ -121,27 +149,38 @@ export function computeIntel(opts: {
   });
   const peakHour = hourly.indexOf(Math.max(...hourly));
 
-  const energyIndex = Math.round(hourly[Math.floor(h) % 24] * (weekend ? 1.05 : 1) * (clear ? 1.05 : 1));
-  const prev = hourly[(Math.floor(h) + 23) % 24];
-  const trend = Math.round(((energyIndex - prev) / Math.max(prev, 1)) * 100);
+  // City Energy Index — grounded in real-time data when available: blends the
+  // civic hour-rhythm with the actual share of nearby venues open right now.
+  const live = !!activity && activity.mode === "live" && activity.total > 0;
+  const curveNow = hourly[Math.floor(h) % 24] * (weekend ? 1.05 : 1) * (clear ? 1.05 : 1);
+  const liveNow = activity ? activity.openRatio * 100 : null;
+  const energyIndex = Math.round(liveNow != null ? liveNow * 0.6 + curveNow * 0.4 : curveNow);
+  // trend vs the previous hour's expected curve position
+  const prevCurve = hourly[(Math.floor(h) + 23) % 24];
+  const trend = Math.round(((energyIndex - prevCurve) / Math.max(prevCurve, 1)) * 100);
 
   const crowd: Intel["crowd"] = energyIndex > 78 ? "surging" : energyIndex > 55 ? "busy" : energyIndex > 30 ? "steady" : "sparse";
 
   // ---- forecasts ----
   const nightish = h >= 20 || h <= 3;
   const mealtime = (h >= 12 && h <= 14) || (h >= 19 && h <= 22);
-  const fc = (id: string, label: string, base: number, driver: string): Forecast => {
-    const now = Math.max(3, Math.min(100, Math.round(base * (0.9 + rand() * 0.2))));
+  // when live venue data exists, anchor "now" on the real open-ratio of the
+  // relevant categories; otherwise fall back to the modelled base.
+  const fc = (id: string, label: string, base: number, driver: string, liveRatio: number | null): Forecast => {
+    const now = liveRatio != null
+      ? Math.max(3, Math.min(100, Math.round(liveRatio * 100)))
+      : Math.max(3, Math.min(100, Math.round(base * (0.9 + rand() * 0.2))));
     const next = Math.max(3, Math.min(100, Math.round(now * (0.85 + rand() * 0.4))));
     return { id, label, now, next, driver };
   };
+  const liveDriver = (base: string) => (live ? `${base} · live` : base);
   const forecasts: Forecast[] = [
-    fc("nightlife", "Nightlife demand", nightish ? 70 + (weekend ? 20 : 0) : 25, nightish ? (weekend ? "weekend + late hour" : "evening rising") : "builds after 20:00"),
-    fc("dining", "Restaurant surge", mealtime ? 80 : 35, mealtime ? "peak dining window" : wet ? "rain pushing indoors" : "between services"),
-    fc("beach", "Beach occupancy", clear && warm && h >= 9 && h <= 18 ? 82 : 20, clear && warm ? "clear & warm" : wet ? "washed out by weather" : "off-hours"),
-    fc("transport", "Transport load", h >= 7 && h <= 9 ? 78 : h >= 16 && h <= 19 ? 82 : 30, h >= 16 && h <= 19 ? "evening rush" : h >= 7 && h <= 9 ? "morning rush" : "flowing freely"),
-    fc("hotel", "Hotel demand", warm ? 68 : 45, warm ? "high season" : "shoulder season"),
-    fc("events", "Event attendance", nightish && weekend ? 74 : 40, weekend ? "weekend programming" : "midweek calm"),
+    fc("nightlife", "Nightlife demand", nightish ? 70 + (weekend ? 20 : 0) : 25, liveDriver(nightish ? (weekend ? "weekend + late hour" : "evening rising") : "builds after 20:00"), groupOpen(activity, ["clubs", "cocktails", "taverns"])),
+    fc("dining", "Restaurant surge", mealtime ? 80 : 35, liveDriver(mealtime ? "peak dining window" : wet ? "rain pushing indoors" : "between services"), groupOpen(activity, ["restaurants"])),
+    fc("beach", "Beach occupancy", clear && warm && h >= 9 && h <= 18 ? 82 : 20, clear && warm ? "clear & warm" : wet ? "washed out by weather" : "off-hours", null),
+    fc("transport", "Transport load", h >= 7 && h <= 9 ? 78 : h >= 16 && h <= 19 ? 82 : 30, h >= 16 && h <= 19 ? "evening rush" : h >= 7 && h <= 9 ? "morning rush" : "flowing freely", null),
+    fc("hotel", "Hotel demand", warm ? 68 : 45, warm ? "high season" : "shoulder season", null),
+    fc("events", "Event attendance", nightish && weekend ? 74 : 40, weekend ? "weekend programming" : "midweek calm", null),
   ];
 
   // ---- zones ----
@@ -199,5 +238,8 @@ export function computeIntel(opts: {
     spendEstimate,
     weatherImpact,
     crowd,
+    live,
+    venuesOpen: activity?.open ?? 0,
+    venuesTotal: activity?.total ?? 0,
   };
 }

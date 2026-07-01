@@ -12,7 +12,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useEnvironment } from "@/engine/useEnvironment";
-import { computeIntel, flag } from "@/lib/intel";
+import { computeIntel, flag, Activity } from "@/lib/intel";
 import MovementMap from "@/components/intel/MovementMap";
 
 const fmtHour = (h: number) => `${String(h).padStart(2, "0")}:00`;
@@ -32,17 +32,38 @@ export default function IntelDashboard() {
   const { env, theme } = useEnvironment();
   const [mounted, setMounted] = useState(false);
   const [tick, setTick] = useState(0);
+  const [activity, setActivity] = useState<Activity | null>(null);
+
   useEffect(() => {
     setMounted(true);
     const id = setInterval(() => setTick((t) => t + 1), 5000); // gentle live refresh
     return () => clearInterval(id);
   }, []);
 
+  // live venue pulse: poll the real open/closed status of nearby venues
+  useEffect(() => {
+    if (env.lat == null || env.lon == null) return;
+    let alive = true;
+    const load = () =>
+      fetch(`/api/pulse?lat=${env.lat}&lon=${env.lon}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (alive && d && typeof d.openRatio === "number") setActivity(d as Activity);
+        })
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 90000); // refresh live data ~every 90s
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [env.lat, env.lon]);
+
   const intel = useMemo(() => {
     if (env.lat == null || env.lon == null) return null;
-    return computeIntel({ lat: env.lat, lon: env.lon, now: env.now, weather: env.weather.kind, season: theme.season });
+    return computeIntel({ lat: env.lat, lon: env.lon, now: env.now, weather: env.weather.kind, season: theme.season, activity: activity ?? undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [env.lat, env.lon, env.weather.kind, theme.season, env.now, tick]);
+  }, [env.lat, env.lon, env.weather.kind, theme.season, env.now, tick, activity]);
 
   if (!mounted) return <main className="min-h-dvh" style={{ background: "var(--ee-bg-deep)" }} />;
 
@@ -62,8 +83,13 @@ export default function IntelDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="ee-glass flex items-center gap-1.5 !rounded-full px-3 py-1 text-[10px] tracking-widest" style={{ color: "var(--ee-accent)" }}>
-            <span className="inline-block h-1.5 w-1.5 rounded-full ee-breathe" style={{ background: "var(--ee-accent)" }} /> LIVE
+          {intel && intel.venuesTotal > 0 && (
+            <span className="ee-glass !rounded-full px-3 py-1 text-[10px] tabular-nums tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
+              {intel.venuesOpen}/{intel.venuesTotal} venues open now
+            </span>
+          )}
+          <span className="ee-glass flex items-center gap-1.5 !rounded-full px-3 py-1 text-[10px] tracking-widest" style={{ color: intel?.live ? "var(--ee-accent)" : "var(--ee-text-dim)" }}>
+            <span className="inline-block h-1.5 w-1.5 rounded-full ee-breathe" style={{ background: intel?.live ? "var(--ee-accent)" : "var(--ee-text-dim)" }} /> {intel?.live ? "LIVE" : "DEMO"}
           </span>
           <Link href="/" className="ee-glass !rounded-full px-3 py-1.5 text-xs" style={{ color: "var(--ee-text-dim)" }}>
             ← experience
@@ -221,7 +247,7 @@ export default function IntelDashboard() {
               ))}
               <span>spend €{intel.spendEstimate}</span>
               <span>local {intel.localPct}%</span>
-              <span style={{ color: "var(--ee-text-dim)" }}>· demo intelligence · GDPR-safe, anonymized ·</span>
+              <span style={{ color: "var(--ee-text-dim)" }}>· {intel.live ? "live intelligence" : "demo intelligence"} · GDPR-safe, anonymized ·</span>
             </div>
           </div>
         </div>
