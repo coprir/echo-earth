@@ -6,7 +6,6 @@
  * Replaces the row of separate icon buttons with a single ⋯ menu.
  */
 
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { LANGS, useLang, useT } from "@/lib/i18n";
@@ -52,17 +51,6 @@ export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; a
               className="ee-glass absolute end-0 z-50 mt-2 w-56 overflow-hidden p-1.5"
               role="menu"
             >
-              <Link
-                href="/intel"
-                role="menuitem"
-                className={rowStyle}
-                style={{ color: "var(--ee-text)" }}
-                onClick={() => setOpen(false)}
-              >
-                <span>{t("hud.intel")}</span>
-                <span style={{ color: "var(--ee-accent)" }}>◇</span>
-              </Link>
-
               <button
                 role="menuitem"
                 onClick={() => {
