@@ -63,3 +63,29 @@ than describing something already wired up:
 Each scope gets the same `.env.example` keys; what differs is *which actual
 project/key* each points at, and that production's service-role key is never
 copied into a lower environment's config.
+
+## REQUIRES HUMAN ACTION — enabling anonymous visitor identity
+
+`engine/useSupabaseSession.ts` and the RLS fix in
+`supabase/migrations/20261005232553_fix_anonymous_visitor_rls.sql` depend on
+**Supabase Anonymous Sign-ins**, which only a project owner can turn on —
+no migration, CLI command, or application code can enable it:
+
+1. In the Supabase dashboard, open the project → **Authentication** →
+   **Sign In / Providers** → enable **Allow anonymous sign-ins**.
+2. Apply the migrations (`supabase db push` or `supabase migration up`
+   against that project, once linked via `supabase link`).
+3. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+   `SUPABASE_SERVICE_ROLE_KEY` for the relevant environment scope.
+
+Until that's done, `getSupabaseBrowserClient()`/`getSupabaseAdminClient()`
+both return `null` (no env vars set) and `useSupabaseSession()` no-ops —
+the app runs exactly as it does today, with zero behavior change. The RLS
+fix itself (strict `user_id = auth.uid()`, a trigger forcing `user_id` from
+the session rather than trusting client input) is also unverified against a
+live database in this environment: no hosted Supabase project is linked, and
+the local Docker daemon needed for `supabase start` isn't running here
+(Docker CLI is present; the daemon is not) — see `PROJECT_STATUS.md`. Running
+the migration locally (`supabase start && supabase db push`, once Docker
+Desktop is started) or against a real project is the needed verification
+step before any live Supabase traffic should flow through this schema.

@@ -40,7 +40,7 @@ export default defineConfig({
             ".next",
             "tests/e2e/**",
             "components/**/*.test.tsx",
-            "engine/**/*.test.ts",
+            "engine/**/*.test.{ts,tsx}",
             "**/*.client-guard.test.ts",
           ],
         },
@@ -56,7 +56,7 @@ export default defineConfig({
           // "engine/**" tests are jsdom by default: engine/*.ts modules are
           // all "use client" browser-sensor code (window, navigator,
           // AudioContext, localStorage), so DOM globals are the common case.
-          include: ["components/**/*.test.tsx", "engine/**/*.test.ts", "**/*.client-guard.test.ts"],
+          include: ["components/**/*.test.tsx", "engine/**/*.test.{ts,tsx}", "**/*.client-guard.test.ts"],
           exclude: ["node_modules", ".next"],
         },
       },

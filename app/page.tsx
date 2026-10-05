@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEnvironment } from "@/engine/useEnvironment";
 import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
+import { useSupabaseSession } from "@/engine/useSupabaseSession";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
 import { rankCategories, filterPlaces } from "@/lib/recommend";
@@ -47,6 +48,10 @@ export default function EchoEarth() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   const [langChosen, setLangChosen] = useState(false);
+
+  // bootstraps a Supabase anonymous session when Supabase is configured;
+  // a complete no-op otherwise (demo mode is unaffected either way)
+  useSupabaseSession();
 
   useEffect(() => {
     setMounted(true);
