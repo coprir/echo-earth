@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env.server";
+import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
+import { checkRateLimit, clientKey } from "@/lib/rateLimit";
+import { log } from "@/lib/log";
 
 /**
  * Weather sense. Proxies OpenWeather when OPENWEATHER_API_KEY is set;
@@ -40,22 +43,31 @@ function synthesize(lat: number): { kind: Kind; tempC: number; description: stri
 }
 
 export async function GET(req: NextRequest) {
-  const lat = parseFloat(req.nextUrl.searchParams.get("lat") ?? "");
-  const lon = parseFloat(req.nextUrl.searchParams.get("lon") ?? "");
-  if (Number.isNaN(lat) || Number.isNaN(lon)) {
-    return NextResponse.json({ error: "lat/lon required" }, { status: 400 });
+  const key = clientKey(req);
+  const limit = checkRateLimit(`weather:${key}`, 60, 60_000);
+  if (!limit.allowed) {
+    log.warn({ route: "/api/weather", branch: "rate_limited" });
+    return NextResponse.json({ error: "rate limited" }, { status: 429, headers: { "Retry-After": String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } });
   }
 
-  const key = env.OPENWEATHER_API_KEY;
-  if (key) {
+  const lat = parseFloat(req.nextUrl.searchParams.get("lat") ?? "");
+  const lon = parseFloat(req.nextUrl.searchParams.get("lon") ?? "");
+  if (Number.isNaN(lat) || Number.isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return NextResponse.json({ error: "valid lat/lon required" }, { status: 400 });
+  }
+
+  const apiKey = env.OPENWEATHER_API_KEY;
+  if (apiKey) {
     try {
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${key}`,
-        { next: { revalidate: 600 } }
+      const res = await fetchWithTimeout(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`,
+        { next: { revalidate: 600 } },
+        4000
       );
       if (res.ok) {
         const d = await res.json();
         const main = d.weather?.[0]?.main ?? "Clear";
+        log.info({ route: "/api/weather", branch: "live" });
         return NextResponse.json({
           kind: OW_MAP[main] ?? "unknown",
           tempC: Math.round(d.main?.temp ?? 20),
@@ -63,8 +75,9 @@ export async function GET(req: NextRequest) {
           source: "openweather",
         });
       }
+      log.warn({ route: "/api/weather", branch: `error:status_${res.status}` });
     } catch {
-      // fall through to synthesis
+      log.warn({ route: "/api/weather", branch: "error:network_error" });
     }
   }
 

@@ -199,6 +199,11 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                       ? t("con.whisper", { city: city ?? "—", n: journey.stops.length, lead: journey.stops[0].place.name })
                       : t("con.empty")}
                   </p>
+                  {journey.stops.some((s) => s.place.source === "echo") && (
+                    <p className="mt-1 text-[10px]" style={{ color: "var(--ee-text-dim)" }}>
+                      {t("field.demo")}
+                    </p>
+                  )}
 
                   <ol className="mt-5 space-y-2.5">
                     {journey.stops.map((s) => (
