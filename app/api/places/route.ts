@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CATEGORIES, CategoryId, Place, bearingDeg, haversineM, synthesizePlaces } from "@/lib/places";
+import { env } from "@/lib/env.server";
 
 /**
  * Discovery engine API. Uses Google Places API (New) searchNearby when
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unknown category" }, { status: 400 });
   }
 
-  const key = process.env.GOOGLE_MAPS_API_KEY;
+  const key = env.GOOGLE_MAPS_API_KEY;
   if (key) {
     try {
       const places = await googleNearby(lat, lon, category, key);

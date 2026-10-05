@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Theme } from "@/engine/environment";
+import { env } from "@/lib/env.client";
 
 declare global {
   interface Window {
@@ -32,7 +33,7 @@ function moodStyles(theme: Theme): google.maps.MapTypeStyle[] {
 export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; lon: number; theme: Theme; zoom?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const key = env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
     if (!key || !ref.current) return;

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -29,7 +30,26 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh`}>
+        <ErrorBoundary
+          fallback={
+            <main className="grid min-h-dvh place-items-center bg-[#06040f] px-6 text-center text-white/70">
+              <p className="text-sm tracking-wide">
+                the organism lost its signal —{" "}
+                {/* a real anchor, not next/link: this must force a full browser
+                    reload to clear whatever React state threw, not a client-side
+                    route transition that could leave the same broken state */}
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href="/" className="underline">
+                  reload
+                </a>
+              </p>
+            </main>
+          }
+        >
+          {children}
+        </ErrorBoundary>
+      </body>
     </html>
   );
 }

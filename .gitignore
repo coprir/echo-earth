@@ -12,6 +12,14 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+/blob-report
+/.vitest-cache
+
+# supabase CLI local state
+/supabase/.temp
+/supabase/.branches
 
 # next.js
 /.next/

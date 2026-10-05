@@ -27,6 +27,7 @@ import AtmospherePicker from "@/components/discovery/AtmospherePicker";
 import Concierge from "@/components/concierge/Concierge";
 import About from "@/components/about/About";
 import LanguageGate from "@/components/i18n/LanguageGate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const ParticleField = dynamic(() => import("@/components/organism/ParticleField"), { ssr: false });
 
@@ -171,7 +172,9 @@ export default function EchoEarth() {
       {!langChosen && <LanguageGate onDone={() => setLangChosen(true)} />}
       {langChosen && !awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
 
-      <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
+      <ErrorBoundary>
+        <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
+      </ErrorBoundary>
 
       <VitalsHUD env={env} theme={theme} travel={mind.travel} onAbout={() => setAboutOpen(true)} />
 
@@ -184,7 +187,11 @@ export default function EchoEarth() {
       {awake && <AtmospherePicker />}
 
       {/* AI City Concierge — energy intent → personalized movement journey */}
-      {awake && <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} autoOpen={introDone} />}
+      {awake && (
+        <ErrorBoundary>
+          <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} autoOpen={introDone} />
+        </ErrorBoundary>
+      )}
 
       {/* the discovery field */}
       <motion.section
@@ -198,7 +205,11 @@ export default function EchoEarth() {
             always stay on-screen (without it the map's content pushes them past
             the viewport, where overflow-hidden clips them on shorter windows) */}
         <div className="relative flex-1 min-h-0 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
-          {env.lat != null && env.lon != null && <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />}
+          {env.lat != null && env.lon != null && (
+            <ErrorBoundary>
+              <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />
+            </ErrorBoundary>
+          )}
           <NeuralMap
             places={visiblePlaces}
             selectedId={selected?.id ?? null}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/env.server";
 
 /**
  * Weather sense. Proxies OpenWeather when OPENWEATHER_API_KEY is set;
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "lat/lon required" }, { status: 400 });
   }
 
-  const key = process.env.OPENWEATHER_API_KEY;
+  const key = env.OPENWEATHER_API_KEY;
   if (key) {
     try {
       const res = await fetch(
