@@ -22,7 +22,6 @@ import { useT } from "@/lib/i18n";
 type Step = "intent" | "loading" | "journey";
 
 export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = true }: { lat: number | null; lon: number | null; city: string | null; onFocusPlace: (p: Place) => void; autoOpen?: boolean }) {
-  const mind = useAdaptiveMind();
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("intent");

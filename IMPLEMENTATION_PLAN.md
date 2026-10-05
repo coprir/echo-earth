@@ -977,14 +977,23 @@ making the contract explicit and documented, not adding new mechanics).
 ## PHASE 7 — City Consciousness Evaluation
 *(brief section 7)*
 
-### CNS-1 — Keep `compose()`/`greeting()` deterministic; do not route through the LLM
-**Current state:** `engine/consciousness.ts` is a well-crafted, weighted,
-seed-jittered template generator — confirmed by direct reading (139 lines,
-priority-ladder candidate scoring, tone-aware phrase banks for phase/weather/
-atmosphere/behavior/mode). It already explicitly documents itself as "An LLM
-layer can later replace `compose()` while keeping the same `Observation`
-contract" — i.e., the original author already designed the swap-point, which
-this evaluation is meant to use or reject deliberately.
+### CNS-1 — Keep the narrator deterministic; do not route through the LLM
+**CORRECTION (post Phase-2 polish):** this section originally analyzed
+`engine/consciousness.ts` as if it were the live narrator. It wasn't — a repo
+-wide import check found zero references to it anywhere in the app; the file
+has since been deleted as confirmed dead code (superseded, same as
+`Awakening.tsx`). **The actual live narrator is
+`components/organism/Consciousness.tsx`** — a parallel, already-translated
+implementation (routes every line through `useT()`, keys like `nar.*`/
+`atmo.*.whisper`) that nobody had wired the old engine file into. The
+reasoning below still applies to the real component; only the filename
+changes.
+**Current state:** `components/organism/Consciousness.tsx` is a well-crafted,
+weighted, seed-jittered candidate picker (local `compose()` function, ~90
+lines) — priority-ladder candidate scoring, tone-aware phrase selection for
+phase/weather/atmosphere/travel/returning-favorites, all keyed through
+`t(...)` so it already speaks correctly in all 9 languages (verified via
+`scripts/check-i18n.ts` — see the corrected I18-3 below).
 **Problem/finding:** This system runs on every idle tick and behavioral change —
 effectively continuous, low-latency, client-side narration. An LLM call at this
 frequency would be (a) far too slow (seconds vs. the current sub-millisecond
@@ -1163,39 +1172,21 @@ issues are fixed; the structural RTL test passes.
 **Tests:** the Playwright spec above.
 **Security considerations:** none. **Performance considerations:** none.
 
-### I18-3 — Dynamic content translation coverage
-**Current state:** `engine/consciousness.ts`'s phrase banks (the City
-Consciousness narrator) and `lib/itinerary.ts`'s journey step `note` fields are
-currently **English-only, hardcoded literals** — not routed through `t()` at
-all, confirmed by reading both files directly. `Concierge.tsx` does correctly
-call `t(`journey.${energy}.${s.stepKey}`)` for step narration, implying
-translation keys for journeys *are* expected to exist in `lib/i18n.ts` (this
-should be verified by I18-1's completeness checker — if those keys are missing
-for some languages, that's a real, silent bug today).
-**Problem:** This is likely the single biggest real gap in the "9-language"
-claim: the ambient narrator voice — one of the app's signature features — may
-only ever speak English regardless of selected language, while the Concierge's
-journey notes are *supposed to* be translated (needs verification).
-**Proposed solution:** First, run I18-1's checker specifically against the
-`journey.*` and (if any exist) `consciousness.*` key namespaces to establish
-ground truth. If `engine/consciousness.ts`'s phrase banks are indeed untranslated
-(suspected), restructure them to route through `t()` with keys per phrase bank
-entry (a genuinely large translation task — 9 languages × ~80 phrases — flagged
-as the single largest content-translation effort in this whole roadmap, sized
-separately rather than hidden inside a "small fix").
-**Files affected:** `engine/consciousness.ts`, `lib/i18n.ts` (many new keys),
-`components/organism/Consciousness.tsx` (pass `t` through — note
-`Consciousness.tsx` already has an unused `useMemo` import per the lint
-warning, worth cleaning up in the same pass).
-**Dependencies:** I18-1 (to confirm scope before committing to it).
-**Acceptance criteria:** I18-1's checker reports zero gaps in `consciousness.*`
-and `journey.*` namespaces across all 9 languages.
-**Tests:** I18-1's own checker is the test; add a component test asserting
-`Consciousness` renders a translated string when `lang !== "en"` for a fixed
-seed/observation fixture.
-**Security considerations:** none.
-**Performance considerations:** none (same template-pick cost, just localized
-strings).
+### I18-3 — Dynamic content translation coverage — RESOLVED, no gap found
+**CORRECTION (post Phase-2 polish):** this section assumed the dead
+`engine/consciousness.ts` was the live narrator and worried it was
+English-only. It was never wired in. I18-1's checker (`scripts/i18n-report.ts`
++ `scripts/i18n-report.test.ts`) has since been built and run for real against
+`lib/i18n.ts`'s actual `DICTIONARIES` export, covering every language and
+every namespace including `nar.*` (the real narrator's keys, used by
+`components/organism/Consciousness.tsx`), `journey.*`, and `atmo.*`.
+**Verified result: zero missing keys in any of the 9 languages.** The
+"suspect" (identical-to-English) matches the checker also reports are
+legitimate — the brand name "echo earth" (correctly left untranslated
+everywhere) and genuine cognates (Café, Restaurant, Chaos, Aurora, Social,
+etc. are spelled identically or near-identically in French/German/Spanish).
+**No translation work is required here.** This task is closed; see `ARCHITECTURE.md` §6–7 for the corrected, verified description of both the
+concierge and the narrator, and `npm run i18n:check` to reproduce.
 
 ### I18-4 — Language persistence & SEO implications
 **Current state:** Language auto-detection (IP country → navigator language →
@@ -1239,20 +1230,26 @@ the routing tradeoff doc exists for your decision.
 ## PHASE 10 — Performance Audit
 *(brief section 10 — largely independent, can run in parallel with Phases 3-9)*
 
-### PRF-1 — Reinstate device-aware particle/visual tiering
-**Current state:** **Confirmed, concrete regression:** `engine/environment.ts`
-still declares a full `PerfTier = "survival" | "low" | "mid" | "high"` type and a
-`tierDensity` table with real `low: 0.25` / `mid: 0.6` values, but the tier is
-now hardcoded: `const tier: PerfTier = survival ? "survival" : "high";` — every
-non-battery-saver device gets full density (up to 2200 CPU-animated particles
-in `ParticleField.tsx`) regardless of actual hardware capability. This was a
-deliberate choice in commit `d897d07` ("Render identically on all devices: drop
-performance-tier visual scaling") — presumably for visual consistency — but it
-directly conflicts with brief §10's "degrade gracefully on weaker devices" and
-with the component's own doc-comment, which still claims "density scales with
-the device performance tier."
-**Problem:** Stated plainly above — this is the clearest, most concrete
-performance finding in the whole audit.
+### PRF-1 — REQUIRES HUMAN ACTION (product decision): device-aware particle/visual tiering
+**Current state:** `engine/environment.ts` still declares a full
+`PerfTier = "survival" | "low" | "mid" | "high"` type and a `tierDensity` table
+with real `low: 0.25` / `mid: 0.6` values, and `useEnvironment` still correctly
+*computes* a real hardware signal (`perfTier`, from
+`navigator.hardwareConcurrency`/`deviceMemory`) — but `resolveTheme` discards
+it: `const tier: PerfTier = survival ? "survival" : "high";`. **This is not an
+accidental regression** — the code has an explicit comment at that line
+explaining it's intentional: "the interface renders identically on every
+device... richness is NOT scaled by device performance tier," landed in commit
+`d897d07` ("Render identically on all devices: drop performance-tier visual
+scaling"). The component's own doc-comment in `ParticleField.tsx` ("density
+scaled to your hardware") is the stale part — not the behavior.
+**Problem:** Every non-Survival-Mode device gets full particle density (up to
+2200 CPU-animated particles) regardless of actual hardware capability, which
+cuts against brief §10's "degrade gracefully on weaker devices" — but reversing
+a previously-made, documented visual-consistency decision is a product
+tradeoff, not a bug fix. **I'm not making this call unilaterally** — it needs
+your sign-off before implementation, per the "do not replace working
+architecture merely because you personally prefer another approach" rule.
 **Proposed solution:** Reinstate a *lightweight* tiering signal — not the old
 static `navigator.hardwareConcurrency`/`deviceMemory` heuristic necessarily
 (worth checking what was actually removed via `git show d897d07` before

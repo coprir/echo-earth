@@ -55,6 +55,20 @@ class AmbientEngine {
   private night = false;
   muted = true;
 
+  constructor() {
+    // Backgrounding the tab shouldn't leave a full oscillator graph (drone,
+    // weather bed, sub pulse) running for no audible benefit — suspend the
+    // whole AudioContext while hidden and resume it only if the visitor
+    // hadn't muted it themselves.
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (!this.ctx) return;
+        if (document.visibilityState === "hidden") this.ctx.suspend();
+        else if (!this.muted) this.ctx.resume();
+      });
+    }
+  }
+
   start(mood: AudioMood) {
     if (!this.ctx) {
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;

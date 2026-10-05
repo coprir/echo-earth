@@ -64,7 +64,7 @@ export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; a
                 <span style={{ color: "var(--ee-text-dim)" }}>?</span>
               </button>
 
-              <button role="menuitem" onClick={toggleSound} aria-pressed={sound} className={rowStyle} style={{ color: "var(--ee-text)" }}>
+              <button role="menuitemcheckbox" onClick={toggleSound} aria-checked={sound} className={rowStyle} style={{ color: "var(--ee-text)" }}>
                 <span>{t("hud.sound")}</span>
                 <span style={{ color: sound ? "var(--ee-accent)" : "var(--ee-text-dim)" }}>{sound ? "◉" : "◎"}</span>
               </button>

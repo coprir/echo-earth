@@ -9,7 +9,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { EnvSignals, TimePhase } from "@/engine/environment";
 import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
 import { useT } from "@/lib/i18n";

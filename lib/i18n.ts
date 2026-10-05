@@ -820,6 +820,14 @@ for (const l of Object.keys(DICT) as Lang[]) {
   Object.assign(DICT[l], NAR[l], EXTRAS[l]);
 }
 
+/**
+ * Read-only access to the full per-language key/value maps, for tooling only
+ * (the i18n completeness checker, its tests). Application code should always
+ * go through `translate`/`useT`, never read this directly — it exists so
+ * translation gaps are checkable and testable, not as a second API surface.
+ */
+export const DICTIONARIES: Readonly<Record<Lang, Dict>> = DICT;
+
 export function translate(lang: Lang, key: string, vars?: Record<string, string | number>): string {
   let s = DICT[lang]?.[key] ?? DICT.en[key] ?? key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));

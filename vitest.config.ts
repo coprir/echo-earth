@@ -35,7 +35,14 @@ export default defineConfig({
           environment: "node",
           globals: true,
           include: ["**/*.test.{ts,tsx}"],
-          exclude: ["node_modules", ".next", "tests/e2e/**", "components/**/*.test.tsx", "**/*.client-guard.test.ts"],
+          exclude: [
+            "node_modules",
+            ".next",
+            "tests/e2e/**",
+            "components/**/*.test.tsx",
+            "engine/**/*.test.ts",
+            "**/*.client-guard.test.ts",
+          ],
         },
       },
       {
@@ -46,7 +53,10 @@ export default defineConfig({
           environment: "jsdom",
           globals: true,
           setupFiles: ["./vitest.setup.ts"],
-          include: ["components/**/*.test.tsx", "**/*.client-guard.test.ts"],
+          // "engine/**" tests are jsdom by default: engine/*.ts modules are
+          // all "use client" browser-sensor code (window, navigator,
+          // AudioContext, localStorage), so DOM globals are the common case.
+          include: ["components/**/*.test.tsx", "engine/**/*.test.ts", "**/*.client-guard.test.ts"],
           exclude: ["node_modules", ".next"],
         },
       },
