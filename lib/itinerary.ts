@@ -13,6 +13,7 @@
  */
 
 import { CategoryId, Place, categoryById } from "./places";
+import { buildValidCandidates, type PlaceRankingContext } from "./recommend";
 import type { Atmosphere } from "@/engine/environment";
 import type { MoodMode } from "@/engine/useAdaptiveMind";
 
@@ -164,19 +165,38 @@ export function energyCategories(energy: Energy): CategoryId[] {
 }
 
 /**
- * Compose the journey: pick the best real place for each step, avoiding repeats.
- * `offset` lets the visitor "regenerate" for the next-best options.
+ * Context the journey composer ranks against — same shape the main field
+ * uses (lib/recommend.ts's `PlaceRankingContext`), minus `mode` (each energy
+ * supplies its own mode via its template, so the caller doesn't pass one).
  */
-export function composeJourney(energy: Energy, placesByCategory: Partial<Record<CategoryId, Place[]>>, offset = 0): Journey {
+export type JourneyContext = Partial<Pick<PlaceRankingContext, "travel" | "phase" | "weather" | "favorites">>;
+
+/**
+ * Compose the journey: pick the best real place for each step, avoiding
+ * repeats. `offset` lets the visitor "regenerate" for the next-best options.
+ * Ranks through the same shared engine (lib/recommend.ts's
+ * `buildValidCandidates`) the main field uses — so an energy's mode (e.g.
+ * "luxurious" → luxury) actually applies its quality filter here too, and
+ * travel/phase/weather/learned-affinity context (when the caller has it)
+ * shape stop selection exactly as they shape the main field.
+ */
+export function composeJourney(energy: Energy, placesByCategory: Partial<Record<CategoryId, Place[]>>, offset = 0, ctx: JourneyContext = {}): Journey {
   const def = energyById(energy);
   const used = new Set<string>();
   const stops: JourneyStop[] = [];
+  const rankCtx: PlaceRankingContext = {
+    mode: def.mode,
+    travel: ctx.travel ?? "still",
+    phase: ctx.phase ?? "day",
+    weather: ctx.weather ?? "unknown",
+    favorites: ctx.favorites ?? [],
+  };
 
   def.steps.forEach((step, i) => {
-    const pool = (placesByCategory[step.category] ?? [])
-      .filter((p) => !used.has(p.id))
-      // concierge prefers open, well-rated, reasonably close
-      .sort((a, b) => b.rating - a.rating || a.distanceM - b.distanceM);
+    const pool = buildValidCandidates(
+      (placesByCategory[step.category] ?? []).filter((p) => !used.has(p.id)),
+      rankCtx
+    );
     if (!pool.length) return;
     const pick = pool[(offset + i) % pool.length] ?? pool[0];
     used.add(pick.id);

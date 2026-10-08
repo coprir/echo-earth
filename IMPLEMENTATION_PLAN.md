@@ -720,6 +720,19 @@ path must go through the anon client under RLS, never bypass it.
 ## PHASE 5 — Recommendation Engine
 *(brief section 6 — formalized before AIC, since the AI layer must call into a stable, documented ranking core)*
 
+**STATUS (2026-10-08): DONE** — implemented *after* AIC (Phase 6 in execution
+order, since the AI layer existed first and this pass is what retrofits a
+real shared engine underneath it, rather than the other way around).
+`lib/recommend.ts` now exports a generic `ScorablePlace`-based
+`scorePlace`/`rankPlaces`/`filterPlaces`/`buildValidCandidates` pipeline, used
+by `app/page.tsx`, `lib/itinerary.ts`'s `composeJourney`, and
+`lib/ai/buildContext.ts` — eliminating the three independent, duplicated
+"best place" heuristics the audit found (see `docs/recommendation-engine.md`
+for the full before/after trace, the scoring table, and what's still
+explicitly out of scope — notably Supabase-synced memory, still `SUP-3`).
+`lib/recommend.test.ts` (18 tests) and `lib/itinerary.test.ts` (10 tests) are
+both new; neither file had any coverage before this pass.
+
 ### REC-1 — Extract and document the ranking algorithm
 **Current state:** `lib/recommend.ts` already implements a clean, deterministic,
 additive-scoring ranker (`rankCategories`) and a constraint filter

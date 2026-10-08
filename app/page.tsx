@@ -14,7 +14,7 @@ import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
 import { useSupabaseSession } from "@/engine/useSupabaseSession";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
-import { rankCategories, filterPlaces } from "@/lib/recommend";
+import { rankCategories, buildValidCandidates } from "@/lib/recommend";
 import { useLang, useT, dirOf } from "@/lib/i18n";
 import PlanetaryEntry from "@/components/planet/PlanetaryEntry";
 import NeuralMap from "@/components/map/NeuralMap";
@@ -143,7 +143,18 @@ export default function EchoEarth() {
     [mind.mode, mind.travel, theme.phase, env.weather.kind, mind.affinities]
   );
 
-  const visiblePlaces = useMemo(() => filterPlaces(places, mind.mode), [places, mind.mode]);
+  const visiblePlaces = useMemo(
+    () =>
+      buildValidCandidates(places, {
+        mode: mind.mode,
+        travel: mind.travel,
+        phase: theme.phase,
+        weather: env.weather.kind,
+        favorites: mind.favorites(),
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [places, mind.mode, mind.travel, theme.phase, env.weather.kind, mind.affinities]
+  );
 
   const pickCategory = useCallback((id: CategoryId) => {
     setCategory(id);

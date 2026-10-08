@@ -260,3 +260,29 @@ before Phase 5: the deterministic concierge, unchanged.
    against the real service's actual output.
 3. **Device-tier particle scaling** (`PRF-1` in IMPLEMENTATION_PLAN.md) — flagged as a
    product decision requiring your sign-off, not changed.
+
+---
+
+## Update — Phase 6: Recommendation Engine (2026-10-08)
+
+Traced the actual pipeline (`USER SIGNALS → ENVIRONMENT → PLACE DATA →
+FILTERING → RANKING → RECOMMENDATION → AI CONTEXT`) by re-reading every file
+in it fresh, per instruction not to assume the prior implementation was
+correct. Found three independent, duplicated "best place" heuristics (the
+category ranker, the Concierge's inline sort, and the AI context builder's
+inline sort) and one real gap (the main field's visible places were never
+ranked by rating/distance/taste at all — only hard-filtered). Unified all of
+it behind `lib/recommend.ts`'s `buildValidCandidates` (filter → rank), now
+shared by `app/page.tsx`, `lib/itinerary.ts`'s `composeJourney`, and
+`lib/ai/buildContext.ts`. Full before/after trace and scoring table in
+`docs/recommendation-engine.md`.
+
+**Test coverage added**: `lib/recommend.ts` and `lib/itinerary.ts` had **zero**
+tests before this phase; both now have comprehensive suites (18 and 10 tests).
+Full suite: **22 files / 94 tests, all passing.** Verified: lint (0
+errors/warnings), `tsc --noEmit` (clean), build (clean, `/` First Load JS
+117kB/220kB — unchanged within 1kB of the Phase 5 baseline).
+
+No REQUIRES HUMAN ACTION items from this phase — it's pure deterministic
+logic, no external credentials involved. Supabase-synced memory (`SUP-3`)
+remains a separate, still-pending item (see the Phase 4 update above).

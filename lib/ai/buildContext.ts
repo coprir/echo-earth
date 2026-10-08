@@ -1,11 +1,18 @@
+import { rankPlaces } from "@/lib/recommend";
 import type { ConciergeCandidate, ConciergeContext, ConciergeRequest } from "./types";
 
 /**
  * Deterministic candidate filtering (the step the architecture diagram in
  * IMPLEMENTATION_PLAN.md's Phase 5 places *before* the AI request). Pure
  * function: given the already-validated request body, produce the trimmed
- * context actually sent to the model — capped, sorted, deduplicated — never
+ * context actually sent to the model — capped, ranked, deduplicated — never
  * more than the model needs.
+ *
+ * Ranking goes through lib/recommend.ts's shared `rankPlaces` — the same
+ * engine behind the main field's visible places and the Concierge's
+ * deterministic journey — so the AI sees candidates in the same priority
+ * order the rest of the app would surface them in, not a second,
+ * independently-tuned heuristic.
  */
 
 // Cost control: keep the prompt small regardless of how many candidates were
@@ -22,9 +29,13 @@ export function buildConciergeContext(req: ConciergeRequest): ConciergeContext {
     deduped.push(c);
   }
 
-  const candidates = deduped
-    .sort((a, b) => b.rating - a.rating || a.distanceM - b.distanceM)
-    .slice(0, MAX_CANDIDATES_TO_MODEL);
+  const candidates = rankPlaces(deduped, {
+    mode: req.mode,
+    travel: req.travel,
+    phase: req.phase,
+    weather: req.weatherKind,
+    favorites: req.favorites,
+  }).slice(0, MAX_CANDIDATES_TO_MODEL);
 
   return {
     energy: req.energy,

@@ -96,8 +96,16 @@ export default function Concierge({
         })
       );
     }
-    // tourists get the headline spots; locals get a little deeper into the pool
-    const det = composeJourney(e, byCat, offset + (local ? 1 : 0));
+    // tourists get the headline spots; locals get a little deeper into the pool —
+    // ranked with the same context (travel/phase/weather/learned taste) the
+    // main field uses, so a journey's stops reflect it too, not just the
+    // energy's own mode
+    const det = composeJourney(e, byCat, offset + (local ? 1 : 0), {
+      travel: m.travel,
+      phase: theme.phase,
+      weather: env.weather.kind,
+      favorites: m.favorites(),
+    });
     setJourney(det);
     setStep("journey");
 

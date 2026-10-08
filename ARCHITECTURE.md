@@ -243,13 +243,30 @@ way against the *real* Anthropic API is unverified in this environment, since
 ## 6. Adaptive intelligence (recommendation ranking)
 
 - `useAdaptiveMind` (zustand + localStorage): affinities per category grow on
-  every touch and decay multiplicatively, so taste is recent-weighted.
+  every touch and decay multiplicatively, so taste is recent-weighted. Local
+  -only today — not yet synced to Supabase (`SUP-3`, still pending).
 - `watchTravelMode` reads GPS speed → still / walking / driving.
-- `rankCategories` scores: mood mode > travel context (driving → petrol & quick
-  food; walking → cafés & social) > time phase > weather > learned favorites.
-  The orb strand visibly re-sequences (Framer Motion `layout`) when context shifts.
-- `filterPlaces` applies the mode lens (open-now, price caps, gems-only) but
-  never returns an empty city.
+- **`lib/recommend.ts` is the single shared ranking engine** behind every
+  "which places matter right now" decision — the main field's visible
+  places, the Concierge's deterministic journey, and the AI context
+  builder's candidate ordering all call it, rather than each hand-rolling
+  its own heuristic (which was the case before this engine was unified —
+  see `docs/recommendation-engine.md` for the full before/after and the
+  scoring table):
+  - `rankCategories` scores *categories* for the orb strand: mood mode >
+    travel context > time phase > weather > learned favorites. The orb
+    strand visibly re-sequences (Framer Motion `layout`) when context shifts.
+  - `filterPlaces` applies the mode lens (open-now, price caps, gems-only) to
+    individual *places* but never returns an empty city.
+  - `scorePlace`/`rankPlaces` score and order individual places: the same
+    category-context weights as `rankCategories`, plus rating, distance
+    (closer wins), a gem bonus, an open-now bonus, and mode-conditional price
+    fit (luxury rewards higher price, cheapeats rewards lower).
+  - `buildValidCandidates` composes the two (filter, then rank) as the one
+    call site everything above uses. It's generic over any place-shaped
+    object with the scoring fields, so the AI layer's trimmed
+    `ConciergeCandidate` type shares the exact same ranking as the full
+    `Place` type used elsewhere — no second, drifting heuristic.
 
 ## 7. Multilingual system
 
@@ -323,13 +340,15 @@ inline comments for why tests are split into a "node" and a "jsdom" Vitest
 project (not cosmetic — it's how `server-only`'s client-import guard is both
 exercised and worked around for legitimate server-side logic tests).
 
-20 test files / 66 tests as of Phase 5 (`npm test`), covering: env/Supabase
+22 test files / 94 tests as of Phase 6 (`npm test`), covering: env/Supabase
 client-boundary guards, the rate limiter and fetch-timeout utilities, the i18n
 completeness checker, the AudioContext visibility lifecycle, error boundaries,
-the anonymous-session hook, and the full AI concierge pipeline (context
-building, candidate capping, schema validation, the anti-hallucination gate,
-caching, rate limiting, and prompt-injection resistance — all against a mocked
-Anthropic boundary, no real API key used anywhere in the suite).
+the anonymous-session hook, the full AI concierge pipeline (context building,
+candidate capping, schema validation, the anti-hallucination gate, caching,
+rate limiting, and prompt-injection resistance — all against a mocked
+Anthropic boundary, no real API key used anywhere in the suite), and the
+recommendation engine (category/place scoring golden cases, filter/rank
+composition, and the journey composer — both had zero coverage before Phase 6).
 
 ## 12. Accessibility despite the spectacle
 
