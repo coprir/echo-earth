@@ -13,6 +13,7 @@
     "i18n:check": "vite-node scripts/check-i18n.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
     "@googlemaps/js-api-loader": "^2.1.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",

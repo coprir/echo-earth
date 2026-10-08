@@ -17,18 +17,40 @@ import { useEffect, useRef, useState } from "react";
 import { CategoryId, Place } from "@/lib/places";
 import { ENERGIES, Energy, Journey, composeJourney, energyCategories, stopIcon } from "@/lib/itinerary";
 import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
+import type { EnvSignals, Theme } from "@/engine/environment";
 import { useT } from "@/lib/i18n";
+import type { ConciergeCandidate } from "@/lib/ai/types";
 
 type Step = "intent" | "loading" | "journey";
 
-export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = true }: { lat: number | null; lon: number | null; city: string | null; onFocusPlace: (p: Place) => void; autoOpen?: boolean }) {
-  const { t } = useT();
+export default function Concierge({
+  lat,
+  lon,
+  city,
+  env,
+  theme,
+  onFocusPlace,
+  autoOpen = true,
+}: {
+  lat: number | null;
+  lon: number | null;
+  city: string | null;
+  env: EnvSignals;
+  theme: Theme;
+  onFocusPlace: (p: Place) => void;
+  autoOpen?: boolean;
+}) {
+  const { t, lang } = useT();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("intent");
   const [local, setLocal] = useState(true); // live like a local vs explore like a tourist
   const [journey, setJourney] = useState<Journey | null>(null);
   const [energy, setEnergyState] = useState<Energy | null>(null);
+  // set only when the current journey's narrative/order came from the AI
+  // layer — never shown unless genuinely AI-derived (see generate()/enhanceWithAI())
+  const [aiNarrative, setAiNarrative] = useState<string | null>(null);
   const offsetRef = useRef(0);
+  const enhanceSeqRef = useRef(0);
 
   // auto-open once per browser session — but only after the intro has finished
   // (autoOpen flips true when the About panel is dismissed / already seen)
@@ -50,6 +72,7 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
 
   async function generate(e: Energy, offset = 0) {
     setEnergyState(e);
+    setAiNarrative(null);
     const m = useAdaptiveMind.getState();
     const def = ENERGIES.find((x) => x.id === e)!;
     // picking an energy re-skins + re-tunes the organism
@@ -74,8 +97,79 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
       );
     }
     // tourists get the headline spots; locals get a little deeper into the pool
-    setJourney(composeJourney(e, byCat, offset + (local ? 1 : 0)));
+    const det = composeJourney(e, byCat, offset + (local ? 1 : 0));
+    setJourney(det);
     setStep("journey");
+
+    // AI enhancement is purely additive and best-effort: the deterministic
+    // journey above is already fully displayed before this is even called.
+    // Never awaited by the UI — a slow/failed/unconfigured AI layer leaves
+    // the visitor looking at exactly what they'd see without it.
+    void enhanceWithAI(e, byCat);
+  }
+
+  async function enhanceWithAI(e: Energy, byCat: Partial<Record<CategoryId, Place[]>>) {
+    const seq = ++enhanceSeqRef.current;
+    const allPlaces = Object.values(byCat).flat().filter((p): p is Place => Boolean(p));
+    if (allPlaces.length === 0) return;
+    const placesById = new Map(allPlaces.map((p) => [p.id, p]));
+
+    const mind = useAdaptiveMind.getState();
+    const candidates: ConciergeCandidate[] = allPlaces.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      rating: p.rating,
+      priceLevel: p.priceLevel,
+      openNow: p.openNow,
+      distanceM: p.distanceM,
+      isGem: p.isGem,
+    }));
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6500);
+    try {
+      const res = await fetch("/api/concierge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          energy: e,
+          language: lang,
+          local,
+          city,
+          country: env.country,
+          weatherKind: env.weather.kind,
+          tempC: env.weather.tempC,
+          phase: theme.phase,
+          season: theme.season,
+          mode: mind.mode,
+          travel: mind.travel,
+          favorites: mind.favorites(),
+          candidates,
+        }),
+      });
+      if (!res.ok) return;
+      const data: { ai: { narrative: string; stops: { placeId: string; reason: string }[] } | null } = await res.json();
+      // a newer generate()/regenerate() call superseded this one while we waited
+      if (seq !== enhanceSeqRef.current || !data.ai) return;
+
+      const stops = data.ai.stops
+        .map((s, i) => {
+          const place = placesById.get(s.placeId);
+          return place ? { place, note: s.reason, index: i + 1, stepKey: i } : null;
+        })
+        .filter((s): s is NonNullable<typeof s> => s !== null);
+      if (stops.length === 0) return;
+
+      setJourney((prev) => (prev ? { ...prev, stops } : prev));
+      setAiNarrative(data.ai.narrative);
+    } catch {
+      // aborted, offline, or a network error — the deterministic journey
+      // already on screen is left exactly as it is
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   const close = () => setOpen(false);
@@ -195,10 +289,17 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
               {step === "journey" && journey && (
                 <div className="mt-4">
                   <p className="text-sm font-light leading-relaxed" style={{ color: "var(--ee-text-dim)" }}>
-                    {journey.stops.length
-                      ? t("con.whisper", { city: city ?? "—", n: journey.stops.length, lead: journey.stops[0].place.name })
-                      : t("con.empty")}
+                    {aiNarrative
+                      ? aiNarrative
+                      : journey.stops.length
+                        ? t("con.whisper", { city: city ?? "—", n: journey.stops.length, lead: journey.stops[0].place.name })
+                        : t("con.empty")}
                   </p>
+                  {aiNarrative && (
+                    <p className="mt-1 text-[10px]" style={{ color: "var(--ee-accent)" }}>
+                      {t("con.aiEnhanced")}
+                    </p>
+                  )}
                   {journey.stops.some((s) => s.place.source === "echo") && (
                     <p className="mt-1 text-[10px]" style={{ color: "var(--ee-text-dim)" }}>
                       {t("field.demo")}
@@ -223,7 +324,7 @@ export default function Concierge({ lat, lon, city, onFocusPlace, autoOpen = tru
                               {s.place.isGem && <span className="text-[10px] text-yellow-200/80">✦</span>}
                             </span>
                             <span className="block text-[11px] italic leading-snug" style={{ color: "var(--ee-text-dim)" }}>
-                              {energy ? t(`journey.${energy}.${s.stepKey}`) : s.note}
+                              {aiNarrative ? s.note : energy ? t(`journey.${energy}.${s.stepKey}`) : s.note}
                             </span>
                           </span>
                           <span className="shrink-0 text-right text-[10px] tracking-wide" style={{ color: "var(--ee-text-dim)" }}>

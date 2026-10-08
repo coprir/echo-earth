@@ -194,7 +194,7 @@ export default function EchoEarth() {
       {/* AI City Concierge — energy intent → personalized movement journey */}
       {awake && (
         <ErrorBoundary>
-          <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} autoOpen={introDone} />
+          <Concierge lat={env.lat} lon={env.lon} city={env.city} env={env} theme={theme} onFocusPlace={focusPlace} autoOpen={introDone} />
         </ErrorBoundary>
       )}
 

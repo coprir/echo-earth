@@ -55,7 +55,8 @@ echo-earth/
 │   └── api/
 │       ├── geo/route.ts        # IP geolocation (edge headers → ipapi → fallback)
 │       ├── weather/route.ts    # OpenWeather proxy + seasonal synthesis fallback
-│       └── places/route.ts     # Google Places (New) + echo demo-city fallback
+│       ├── places/route.ts     # Google Places (New) + echo demo-city fallback
+│       └── concierge/route.ts  # AI concierge completion — see §5
 ├── engine/                     # the organism itself — no UI in here
 │   ├── environment.ts          # genome: EnvSignals → Theme (pure functions)
 │   ├── useEnvironment.ts       # nervous system: all browser sensors → signals
@@ -77,7 +78,7 @@ echo-earth/
 │   │   ├── AtmospherePicker.tsx# synthetic "digital weather" atmosphere selector
 │   │   └── PlaceDetail.tsx     # glass membrane with route handoff
 │   ├── concierge/
-│   │   └── Concierge.tsx       # deterministic journey composer — see §5
+│   │   └── Concierge.tsx       # deterministic journey + best-effort AI upgrade — see §5
 │   ├── about/
 │   │   └── About.tsx           # "what is this?" intro panel
 │   ├── i18n/
@@ -94,9 +95,17 @@ echo-earth/
 │   ├── env.server.ts           # validated server-only env (server-only guarded)
 │   ├── env.client.ts           # validated NEXT_PUBLIC_* env
 │   ├── log.ts                  # structured server logging (PII-field guard)
-│   └── supabase/
-│       ├── client.ts           # browser Supabase client (anon key, RLS-enforced)
-│       └── server.ts           # service-role Supabase client (server-only guarded)
+│   ├── rateLimit.ts            # in-memory per-IP rate limiter (all API routes)
+│   ├── fetchWithTimeout.ts     # shared outbound-fetch timeout wrapper
+│   ├── supabase/
+│   │   ├── client.ts           # browser Supabase client (anon key, RLS-enforced)
+│   │   └── server.ts           # service-role Supabase client (server-only guarded)
+│   └── ai/                     # AI concierge layer — see §5
+│       ├── types.ts            # zod request/response contracts (shared, not secret)
+│       ├── buildContext.ts     # deterministic candidate filtering (pure)
+│       ├── anthropic.ts        # the only module importing @anthropic-ai/sdk
+│       ├── validate.ts         # anti-hallucination place-id gate
+│       └── cache.ts            # in-memory AI-response cache (20min TTL)
 ├── components/ErrorBoundary.tsx# generic error boundary, wraps WebGL/map/concierge
 ├── scripts/
 │   ├── i18n-report.ts          # pure translation-completeness logic
@@ -159,21 +168,17 @@ not an unnoticed bug; changing it is a product decision, not a pure fix.
 - Results carry `distanceM` + `bearing`, which the NeuralMap uses to place
   neurons in their *true real-world direction* around the visitor-nucleus.
 
-## 5. The concierge and the narrator — both deterministic today
+## 5. The concierge (hybrid deterministic + AI) and the narrator (deterministic)
 
-Despite the "AI" branding, **neither subsystem currently calls an LLM.** This
-is accurate as of this writing, not aspirational:
-
-- **`components/concierge/Concierge.tsx`** (the "AI City Concierge") composes
-  a movement journey via `lib/itinerary.ts`'s `composeJourney` — a pure,
-  deterministic function that picks the best real place per template step
-  (sorted by rating/distance, with a regenerate offset). No network call to
-  any LLM provider exists in this path.
-- **`components/organism/Consciousness.tsx`** (the ambient narrator voice) is
-  a weighted, seed-jittered candidate picker over translation keys (`nar.*`,
-  `atmo.*.whisper`, `phase.*`, `weather.*`) — fully routed through `useT()`,
-  so it speaks correctly in all 9 supported languages. It is also fully
-  deterministic and offline.
+**Narrator — deterministic, unchanged.**
+`components/organism/Consciousness.tsx` (the ambient narrator voice) is a
+weighted, seed-jittered candidate picker over translation keys (`nar.*`,
+`atmo.*.whisper`, `phase.*`, `weather.*`) — fully routed through `useT()`, so
+it speaks correctly in all 9 supported languages. It runs continuously (every
+idle tick / context change) and is deliberately kept deterministic and
+offline — an LLM call at that frequency would be slower, costlier, and not
+actually better than the already-tuned phrase banks (see `CNS-1` in
+IMPLEMENTATION_PLAN.md for the full reasoning).
 
 An earlier, unused draft of the narrator (`engine/consciousness.ts`, English
 -only phrase banks, never imported by the live app) and an unused earlier
@@ -181,11 +186,59 @@ boot sequence (`components/organism/Awakening.tsx`, superseded by
 `PlanetaryEntry.tsx`) have been removed — see git history around commit
 `5204133` and later for the cleanup.
 
-`ANTHROPIC_API_KEY` is accepted in `.env.example` for a planned LLM layer
-(see `IMPLEMENTATION_PLAN.md` Phase AIC) that would wrap — not replace — this
-deterministic core: the AI would reason over an already-valid candidate set,
-never invent places, and the app would fall back to exactly today's
-deterministic behavior if the AI call is unavailable, slow, or unconfigured.
+**Concierge — hybrid, deterministic-first.** `components/concierge/Concierge.tsx`
+always composes a movement journey via `lib/itinerary.ts`'s `composeJourney` —
+a pure, deterministic function that picks the best real place per template
+step — and renders it immediately, with zero added latency versus before. It
+then calls `POST /api/concierge` as a best-effort, time-boxed (~6.5s)
+*upgrade*: if a validated AI response arrives in time, the displayed journey's
+order and narration are replaced with the model's; if it doesn't (missing key,
+timeout, network error, invalid response), the deterministic journey already
+on screen is left exactly as it was. A "✦ AI-refined" label (translated into
+all 9 languages) appears only when a response genuinely came from the model.
+
+The AI layer (`lib/ai/`) never invents places — it only ever reasons over and
+narrates a candidate set the client already fetched from the real data layer
+(Google Places or echo synthesis):
+
+```
+places already fetched (real or echo)
+        │
+        ▼
+lib/ai/buildContext.ts    — dedupe, cap (≤24), sort by rating/distance;
+                             trims to exactly the fields the model needs
+        │
+        ▼
+lib/ai/types.ts           — zod-validated request/response contract
+        │
+        ▼
+app/api/concierge/route.ts — rate-limited (10/min/IP), input-validated,
+                              checks lib/ai/cache.ts (in-memory, 20min TTL,
+                              keyed by non-personal context only) before
+                              calling the model
+        │
+        ▼
+lib/ai/anthropic.ts        — the only module that imports @anthropic-ai/sdk;
+                              client.messages.parse() + zodOutputFormat() —
+                              structured output, not free-text parsing
+        │
+        ▼
+lib/ai/validate.ts          — the anti-hallucination gate: every returned
+                               place id is checked against the real candidate
+                               set; anything else is dropped; empty result ⇒
+                               treated identically to "no AI response"
+        │
+        ▼
+Concierge.tsx merges by id against its own already-fetched places — never
+trusts any place data from the AI response beyond the id + narrative text
+```
+
+**Architecture implemented vs. service live:** this entire pipeline is built
+and tested with the Anthropic SDK mocked at the `lib/ai/anthropic.ts`
+boundary — no test requires or uses a real API key. Whether it behaves this
+way against the *real* Anthropic API is unverified in this environment, since
+`ANTHROPIC_API_KEY` has never been set here — see `PROJECT_STATUS.md`'s Phase
+5 update for the precise distinction and what verifying it would require.
 
 ## 6. Adaptive intelligence (recommendation ranking)
 
@@ -269,6 +322,14 @@ See `docs/environment.md` for the env-validation layers and the
 inline comments for why tests are split into a "node" and a "jsdom" Vitest
 project (not cosmetic — it's how `server-only`'s client-import guard is both
 exercised and worked around for legitimate server-side logic tests).
+
+20 test files / 66 tests as of Phase 5 (`npm test`), covering: env/Supabase
+client-boundary guards, the rate limiter and fetch-timeout utilities, the i18n
+completeness checker, the AudioContext visibility lifecycle, error boundaries,
+the anonymous-session hook, and the full AI concierge pipeline (context
+building, candidate capping, schema validation, the anti-hallucination gate,
+caching, rate limiting, and prompt-injection resistance — all against a mocked
+Anthropic boundary, no real API key used anywhere in the suite).
 
 ## 12. Accessibility despite the spectacle
 

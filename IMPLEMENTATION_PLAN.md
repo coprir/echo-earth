@@ -800,6 +800,24 @@ refactor).
 ## PHASE 6 — AI Concierge
 *(brief section 5 — the first genuinely new subsystem; depends on REC-3 and MEM for context, SUP-6 for caching)*
 
+**STATUS (2026-10-08): AI ARCHITECTURE IMPLEMENTED — AI SERVICE NOT LIVE.**
+Implemented ahead of REC-1..3/MEM-1..4/SUP-6 (none of which existed yet) by
+building a self-contained version: `lib/ai/buildContext.ts` does the
+deterministic candidate filtering directly from whatever places the caller
+already fetched (not from a formalized `lib/recommend.ts` pipeline, which
+doesn't exist yet — see Phase 5/REC below), and `lib/ai/cache.ts` is an
+in-memory per-process cache (same pattern as `lib/rateLimit.ts`), not the
+`ai_suggestions` Supabase table (SUP-6 — Supabase still has no application
+code reading/writing any table besides the identity bootstrap from Phase 4).
+Every AIC task below is done in spirit; swapping the in-memory cache for
+`ai_suggestions` once Supabase is live is a drop-in change confined to
+`lib/ai/cache.ts`. **Critically: `ANTHROPIC_API_KEY` has never been set in
+this environment, and `lib/ai/anthropic.ts` has never executed against the
+real Anthropic API** — every test in `lib/ai/*.test.ts` and
+`app/api/concierge/route.test.ts` mocks `requestConciergeCompletion` directly.
+The code is real; its behavior against a real model is unverified. See
+`PROJECT_STATUS.md`'s Phase 5 update for the full distinction.
+
 ### AIC-1 — Context builder (structured, redacted, bounded)
 **Current state:** `Concierge.tsx` and `lib/itinerary.ts` are entirely
 deterministic today (confirmed: no `@anthropic-ai/sdk` dependency, no API calls

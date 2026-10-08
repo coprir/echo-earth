@@ -176,3 +176,87 @@ designed. No errors required fixing to reach this state — the repository was a
 a clean, reproducible baseline. The only open items are the audit advisories (tooling,
 non-blocking) and the pieces you explicitly deferred (Supabase, Claude, realtime,
 and live third-party credential verification).
+
+---
+
+## Update — Phases 1–5 (2026-10-08)
+
+Everything below reflects the state after implementing IMPLEMENTATION_PLAN.md's
+Phase 1 (Foundation), Phase 2 (Core Polish), Phase 3 (Real Data Hardening), Phase 4
+(Supabase identity/RLS), and Phase 5 (AI Concierge). Each phase was committed
+separately with lint/typecheck/test/build verified green before moving to the next —
+see `git log` for the individual commits and their detailed messages.
+
+### What changed since the baseline above
+
+- **Testing**: Vitest (two projects — see `vitest.config.ts`'s comments for why) +
+  Playwright scaffolding now exists. **0 → 20 test files, 0 → 66 tests, all passing.**
+- **Lint**: the 5 pre-existing warnings listed above are now **0** — each was a real,
+  fixed issue (an a11y bug, 4 genuinely-unused values), not suppressed.
+- **Dead code removed** (verified unused via repo-wide import grep before deletion):
+  `components/organism/Awakening.tsx`, `engine/consciousness.ts`.
+- **Env validation, logging, error boundaries**: `lib/env.server.ts`/`lib/env.client.ts`
+  (zod-validated, `server-only`-enforced), `lib/log.ts`, React error boundaries around
+  WebGL/map/concierge widgets.
+- **API hardening**: shared fetch-timeout + rate-limiting utilities now cover
+  `/api/geo`, `/api/weather`, `/api/places`, and the new `/api/concierge`.
+- **Supabase**: client factories exist; an anonymous-identity bootstrap
+  (`engine/useSupabaseSession.ts`) and an RLS-fix migration exist and are code
+  -complete, but **unverified against a live database** — see "What's still not
+  verified" below.
+- **AI Concierge** (Phase 5 — new this update): see the dedicated section below.
+- **Build**: `/` First Load JS is now 117 kB / 219 kB (was 91.5 kB / 194 kB) — the
+  growth is real and accounted for: zod-validated env (~24 kB) landed in Phase 1; the
+  Supabase and Anthropic SDKs are both confirmed to add **zero** client-bundle weight
+  (service-role/Anthropic code is server-only-guarded; the anon Supabase client is
+  dynamically imported and gated on config presence — both were verified by diffing
+  the build output before/after, and one real regression of this exact kind was
+  caught and fixed in Phase 4 before it was ever committed).
+
+### AI Concierge: architecture vs. service — read this distinction carefully
+
+**AI ARCHITECTURE IMPLEMENTED: yes.** All of the following exist, are wired together,
+and are covered by tests that mock the Anthropic SDK at the boundary (no real API key
+used or needed to verify any of it):
+
+- A deterministic candidate-filtering step (`lib/ai/buildContext.ts`) that caps,
+  dedupes, and sorts whatever candidate places the caller already fetched from the
+  real data layer, before anything is sent to a model.
+- A structured request/response contract validated with zod end-to-end
+  (`lib/ai/types.ts`), using the Anthropic SDK's `messages.parse()` +
+  `zodOutputFormat()` — not free-form text parsing.
+- A semantic anti-hallucination gate (`lib/ai/validate.ts`): every place id the model
+  returns is checked against the real candidate set it was given; anything else is
+  dropped; if nothing survives, the result is treated exactly like "no AI response."
+- A dedicated, rate-limited, input-validated API route (`app/api/concierge/route.ts`)
+  with an in-memory response cache (`lib/ai/cache.ts`) keyed by non-personal context
+  only.
+- A deterministic-first UI integration (`components/concierge/Concierge.tsx`): the
+  existing deterministic journey (`lib/itinerary.ts`, unchanged) always renders
+  immediately; the AI layer is called afterward as a best-effort, time-boxed upgrade
+  that silently no-ops on any failure, timeout, or missing key. A small "✦ AI-refined"
+  label (translated into all 9 languages) appears **only** when a response actually
+  came from the model — the deterministic fallback is never mislabeled as AI-generated.
+
+**AI SERVICE LIVE: no.** `ANTHROPIC_API_KEY` has never been set in this environment,
+and the code path that actually calls `POST /v1/messages` has **never executed against
+the real Anthropic API** in this sandbox — only against a mocked
+`requestConciergeCompletion` in tests. Every behavioral claim above (candidate
+filtering, schema validation, anti-hallucination, caching, fallback) is verified at
+the mock boundary; none of it has been verified against real model output. That
+verification is the next required step once a real key is available (see "Required
+human actions" below) — until then, the app's live behavior is byte-identical to
+before Phase 5: the deterministic concierge, unchanged.
+
+### What's still not verified (REQUIRES HUMAN ACTION)
+
+1. **Supabase**: Anonymous Sign-ins must be enabled in the project dashboard, a real
+   project linked, and the migrations applied — see `docs/environment.md`. No Docker
+   daemon is running in this sandbox either, so even local RLS verification isn't
+   possible here.
+2. **Real API keys** (`GOOGLE_MAPS_API_KEY`, `OPENWEATHER_API_KEY`,
+   `ANTHROPIC_API_KEY`) — all three integrations are confirmed to fail safe without
+   them (demo/deterministic fallback engages correctly), but none has been verified
+   against the real service's actual output.
+3. **Device-tier particle scaling** (`PRF-1` in IMPLEMENTATION_PLAN.md) — flagged as a
+   product decision requiring your sign-off, not changed.
