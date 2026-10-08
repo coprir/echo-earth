@@ -197,7 +197,7 @@ export default function EchoEarth() {
       <About open={aboutOpen} onClose={closeAbout} />
 
       {/* the City Consciousness — the organism's living voice */}
-      {awake && <Consciousness env={env} category={category} placeCount={visiblePlaces.length} />}
+      {awake && <Consciousness env={env} />}
 
       {/* Digital Weather System — synthetic atmosphere selector */}
       {awake && <AtmospherePicker />}

@@ -286,3 +286,41 @@ errors/warnings), `tsc --noEmit` (clean), build (clean, `/` First Load JS
 No REQUIRES HUMAN ACTION items from this phase — it's pure deterministic
 logic, no external credentials involved. Supabase-synced memory (`SUP-3`)
 remains a separate, still-pending item (see the Phase 4 update above).
+
+---
+
+## Update — Phase 7: City Consciousness Audit (2026-10-08)
+
+Re-read `components/organism/Consciousness.tsx` fresh rather than re-trusting
+the Phase 2 correction. **Decision: stays deterministic, no LLM** — nothing
+found here changes that (it recomposes every ~14s for the whole session;
+an LLM call at that cadence would be slower, costlier, and not better than
+the already-tuned, fully-translated phrase banks).
+
+Found and fixed three real issues: (1) a genuine stale-closure bug — the
+narrator's periodic recomposition could read an outdated `env.now`/
+`env.city` for as long as weather/mode/atmosphere/travel happened to stay
+constant, plausibly producing a wrong phase-of-day announcement for hours;
+fixed with a "latest ref" pattern, zero change to the intended speaking
+cadence; (2) dead `category`/`placeCount` props passed from `app/page.tsx`
+that the component never read and no translation content ever used —
+removed; (3) a missing `aria-hidden` on a decorative element, inconsistent
+with the identical pattern already used in `VitalsHUD.tsx` — fixed.
+
+`compose()` (the actual candidate-weighting logic) had zero test coverage
+and wasn't independently testable before this audit (defined inline,
+closing over component state). Extracted to a pure, exported function;
+9 new tests added, including a hand-computed golden case.
+
+**One real engineering hazard hit and fixed, not just avoided in theory:**
+combining `vi.useFakeTimers()` with rendering this component (framer-motion's
+`AnimatePresence`) hung the vitest worker indefinitely — confirmed by the
+process never exiting and requiring a kill. Resolved by using real timers
+for the one necessary component-level test, since the detailed logic is
+already covered by the timer-free pure-function tests. Documented in
+`docs/city-consciousness-audit.md` for the next time fake timers meet a
+framer-motion component in this codebase.
+
+Full suite: **23 files / 103 tests, all passing.** Verified: lint (0
+errors/warnings), `tsc --noEmit` (clean), build (clean, `/` First Load JS
+117kB/220kB — unchanged). No REQUIRES HUMAN ACTION items.

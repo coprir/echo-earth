@@ -170,15 +170,19 @@ not an unnoticed bug; changing it is a product decision, not a pure fix.
 
 ## 5. The concierge (hybrid deterministic + AI) and the narrator (deterministic)
 
-**Narrator — deterministic, unchanged.**
+**Narrator — deterministic, audited (Phase 7), unchanged in behavior.**
 `components/organism/Consciousness.tsx` (the ambient narrator voice) is a
 weighted, seed-jittered candidate picker over translation keys (`nar.*`,
 `atmo.*.whisper`, `phase.*`, `weather.*`) — fully routed through `useT()`, so
 it speaks correctly in all 9 supported languages. It runs continuously (every
-idle tick / context change) and is deliberately kept deterministic and
-offline — an LLM call at that frequency would be slower, costlier, and not
-actually better than the already-tuned phrase banks (see `CNS-1` in
-IMPLEMENTATION_PLAN.md for the full reasoning).
+~14s) and is deliberately kept deterministic and offline — an LLM call at
+that frequency would be slower, costlier, and not actually better than the
+already-tuned phrase banks (see `CNS-1` in `IMPLEMENTATION_PLAN.md` for the
+full reasoning). The weighting logic itself (`compose()`) is now a pure,
+exported, independently-tested function rather than an inline closure — a
+Phase 7 audit found and fixed a real stale-closure bug in how the component
+called it (see `docs/city-consciousness-audit.md`) without changing the
+narration behavior itself.
 
 An earlier, unused draft of the narrator (`engine/consciousness.ts`, English
 -only phrase banks, never imported by the live app) and an unused earlier
@@ -340,10 +344,11 @@ inline comments for why tests are split into a "node" and a "jsdom" Vitest
 project (not cosmetic — it's how `server-only`'s client-import guard is both
 exercised and worked around for legitimate server-side logic tests).
 
-22 test files / 94 tests as of Phase 6 (`npm test`), covering: env/Supabase
+23 test files / 103 tests as of Phase 7 (`npm test`), covering: env/Supabase
 client-boundary guards, the rate limiter and fetch-timeout utilities, the i18n
 completeness checker, the AudioContext visibility lifecycle, error boundaries,
-the anonymous-session hook, the full AI concierge pipeline (context building,
+the anonymous-session hook, the City Consciousness narrator's candidate
+-weighting logic, the full AI concierge pipeline (context building,
 candidate capping, schema validation, the anti-hallucination gate, caching,
 rate limiting, and prompt-injection resistance — all against a mocked
 Anthropic boundary, no real API key used anywhere in the suite), and the

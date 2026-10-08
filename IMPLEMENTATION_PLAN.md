@@ -1008,6 +1008,18 @@ making the contract explicit and documented, not adding new mechanics).
 ## PHASE 7 — City Consciousness Evaluation
 *(brief section 7)*
 
+**STATUS (2026-10-08): DONE** — full audit completed against the real
+`components/organism/Consciousness.tsx`. Decision stands: deterministic,
+unchanged, no LLM. The audit also found and fixed three real issues reading
+the component fresh rather than re-trusting the Phase 2 correction below: a
+stale-closure bug (the periodic recomposition could read outdated `env.now`/
+`env.city` for as long as weather/mode/atmosphere/travel stayed constant —
+plausibly hours), dead `category`/`placeCount` props with no corresponding
+content, and a missing `aria-hidden` inconsistent with the identical pattern
+elsewhere in the app. `compose()` was extracted to a pure, exported,
+independently-tested function (9 new tests, zero coverage before). Full
+record: `docs/city-consciousness-audit.md`.
+
 ### CNS-1 — Keep the narrator deterministic; do not route through the LLM
 **CORRECTION (post Phase-2 polish):** this section originally analyzed
 `engine/consciousness.ts` as if it were the live narrator. It wasn't — a repo
