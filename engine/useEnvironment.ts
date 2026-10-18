@@ -124,20 +124,29 @@ export function useEnvironment() {
 
   // ---- battery ----
   useEffect(() => {
-    const nav = navigator as unknown as { getBattery?: () => Promise<{ level: number; addEventListener: (e: string, f: () => void) => void }> };
+    let alive = true;
+    let battery: { removeEventListener: (e: string, f: () => void) => void } | null = null;
+    let update: (() => void) | null = null;
+    const nav = navigator as unknown as { getBattery?: () => Promise<{ level: number; addEventListener: (e: string, f: () => void) => void; removeEventListener: (e: string, f: () => void) => void }> };
     nav.getBattery?.().then((b) => {
-      const update = () => {
+      if (!alive) return;
+      update = () => {
         setBatteryLevel(b.level);
         setBatterySaver(b.level < 0.15);
       };
       update();
       b.addEventListener("levelchange", update);
+      battery = b;
     });
+    return () => {
+      alive = false;
+      if (battery && update) battery.removeEventListener("levelchange", update);
+    };
   }, []);
 
   // ---- network ----
   useEffect(() => {
-    const conn = (navigator as unknown as { connection?: { effectiveType?: string; saveData?: boolean; addEventListener?: (e: string, f: () => void) => void } }).connection;
+    const conn = (navigator as unknown as { connection?: { effectiveType?: string; saveData?: boolean; addEventListener?: (e: string, f: () => void) => void; removeEventListener?: (e: string, f: () => void) => void } }).connection;
     if (!conn) return;
     const update = () => {
       setNetSpeed(conn.effectiveType === "4g" ? "fast" : "slow");
@@ -145,6 +154,7 @@ export function useEnvironment() {
     };
     update();
     conn.addEventListener?.("change", update);
+    return () => conn.removeEventListener?.("change", update);
   }, []);
 
   // ---- media queries: dark, reduced motion ----

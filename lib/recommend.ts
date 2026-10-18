@@ -18,15 +18,6 @@ import { CATEGORIES, Category, CategoryId } from "./places";
 import type { MoodMode, TravelMode } from "@/engine/useAdaptiveMind";
 import type { TimePhase, WeatherKind } from "@/engine/environment";
 
-export const MODE_META: Record<MoodMode, { label: string; whisper: string }> = {
-  explore: { label: "Explore", whisper: "the city is open" },
-  latenight: { label: "Late Night", whisper: "for the hours that don't sleep" },
-  rainyday: { label: "Rainy Day", whisper: "warm light, steamed windows" },
-  cheapeats: { label: "Cheap Eats", whisper: "full plates, light wallets" },
-  luxury: { label: "Luxury", whisper: "the city's upper atmosphere" },
-  hiddengems: { label: "Hidden Gems", whisper: "places the maps whisper about" },
-};
-
 const MODE_CATEGORIES: Record<MoodMode, CategoryId[]> = {
   explore: [],
   latenight: ["clubs", "cocktails", "fastfood", "taverns", "petrol", "pharmacies"],
@@ -161,16 +152,4 @@ export function filterPlaces<T extends ScorablePlace>(places: T[], mode: MoodMod
  */
 export function buildValidCandidates<T extends ScorablePlace>(places: T[], ctx: PlaceRankingContext): T[] {
   return rankPlaces(filterPlaces(places, ctx.mode), ctx);
-}
-
-/** A one-line thought the organism shares about the current context. */
-export function whisper(mode: MoodMode, phase: TimePhase, weather: WeatherKind, city: string | null, travel: TravelMode): string {
-  if (travel === "driving") return "you're moving fast — fuel and quick food are lit up";
-  if (mode !== "explore") return MODE_META[mode].whisper;
-  if (weather === "rain" || weather === "drizzle") return `rain over ${city ?? "the city"} — I surfaced warm rooms`;
-  if (weather === "snow") return "snowfall — everything slow and close is glowing";
-  if (phase === "latenight") return "the late hours — only the open doors are pulsing";
-  if (phase === "dawn") return "the city is waking with you";
-  if (phase === "dusk") return "golden hour — the scenic nodes are brightest now";
-  return `I'm listening to ${city ?? "your city"} — touch a node`;
 }

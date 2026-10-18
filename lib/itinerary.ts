@@ -208,13 +208,5 @@ export function composeJourney(energy: Energy, placesByCategory: Partial<Record<
   return { energy, title: def.title, subtitle: def.subtitle, stops, spanM };
 }
 
-/** A one-line the concierge says when it hands over a journey. */
-export function journeyWhisper(j: Journey, city: string | null): string {
-  if (!j.stops.length) return "the city's quiet here — I couldn't trace a full route. try another energy?";
-  const where = city ? ` across ${city}` : "";
-  const lead = j.stops[0]?.place.name;
-  return `here's your route${where} — ${j.stops.length} stops, beginning at ${lead}. follow me.`;
-}
-
 const icon = (c: CategoryId) => categoryById(c).icon;
 export { icon as stopIcon };

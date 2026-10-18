@@ -28,7 +28,7 @@ export default function PlaceDetail({ place, onClose }: { place: Place | null; o
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `hsl(${categoryById(place.category).hue}, 75%, 70%)` }}>
                 {t(`cat.${place.category}`)}
-                {place.isGem && <span className="ml-2 text-yellow-200/90">✦ {t("detail.gem")}</span>}
+                {place.isGem && <span className="ms-2 text-yellow-200/90">✦ {t("detail.gem")}</span>}
               </p>
               <h3 className="mt-1 text-lg font-medium ee-glow-text">{place.name}</h3>
               <p className="mt-0.5 text-xs" style={{ color: "var(--ee-text-dim)" }}>

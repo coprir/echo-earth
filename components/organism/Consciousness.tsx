@@ -127,7 +127,7 @@ export default function Consciousness({ env }: { env: EnvSignals }) {
             className="max-w-[34rem] text-center text-[0.95rem] font-light leading-relaxed tracking-wide"
             style={{ color: "var(--ee-text)", textShadow: "0 0 28px var(--ee-glow)" }}
           >
-            <span className="mr-2 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full ee-breathe align-middle" style={{ background: "var(--ee-accent)", boxShadow: "0 0 10px var(--ee-accent)" }} aria-hidden />
+            <span className="me-2 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full ee-breathe align-middle" style={{ background: "var(--ee-accent)", boxShadow: "0 0 10px var(--ee-accent)" }} aria-hidden />
             {line}
           </motion.p>
         )}

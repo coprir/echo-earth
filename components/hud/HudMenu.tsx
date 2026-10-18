@@ -87,7 +87,7 @@ export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; a
                         setLang(l.code);
                         setOpen(false);
                       }}
-                      className="rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors"
+                      className="rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors"
                       style={{ background: active ? "var(--ee-glow)" : "transparent", color: active ? "var(--ee-text)" : "var(--ee-text-dim)" }}
                     >
                       {l.label}

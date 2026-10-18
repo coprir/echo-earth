@@ -245,7 +245,7 @@ export default function Concierge({
                       <button
                         key={e.id}
                         onClick={() => generate(e.id)}
-                        className="group flex flex-col items-start gap-1 rounded-2xl px-4 py-3 text-left transition-transform active:scale-95"
+                        className="group flex flex-col items-start gap-1 rounded-2xl px-4 py-3 text-start transition-transform active:scale-95"
                         style={{ background: "var(--ee-surface)", border: "1px solid var(--ee-line)" }}
                       >
                         <span className="text-base" style={{ color: "var(--ee-accent)" }}>
@@ -319,7 +319,7 @@ export default function Concierge({
                       <li key={s.place.id}>
                         <button
                           onClick={() => tapStop(s.place)}
-                          className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-transform active:scale-[0.98]"
+                          className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-start transition-transform active:scale-[0.98]"
                           style={{ background: "var(--ee-surface)", border: "1px solid var(--ee-line)" }}
                         >
                           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm" style={{ background: "var(--ee-glow)", color: "var(--ee-text)" }}>
@@ -335,7 +335,7 @@ export default function Concierge({
                               {aiNarrative ? s.note : energy ? t(`journey.${energy}.${s.stepKey}`) : s.note}
                             </span>
                           </span>
-                          <span className="shrink-0 text-right text-[10px] tracking-wide" style={{ color: "var(--ee-text-dim)" }}>
+                          <span className="shrink-0 text-end text-[10px] tracking-wide" style={{ color: "var(--ee-text-dim)" }}>
                             {(s.place.distanceM / 1000).toFixed(1)}km
                             <br />★ {s.place.rating.toFixed(1)}
                           </span>

@@ -43,7 +43,7 @@ export default function AtmospherePicker() {
                       setOpen(false);
                     }}
                     aria-pressed={active}
-                    className="group flex w-full flex-col items-start rounded-xl px-3 py-1.5 text-left transition-colors"
+                    className="group flex w-full flex-col items-start rounded-xl px-3 py-1.5 text-start transition-colors"
                     style={{ background: active ? "var(--ee-glow)" : "transparent" }}
                   >
                     <span className="text-sm" style={{ color: active ? "var(--ee-text)" : "var(--ee-text-dim)" }}>

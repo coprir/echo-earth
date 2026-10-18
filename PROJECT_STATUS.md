@@ -324,3 +324,46 @@ framer-motion component in this codebase.
 Full suite: **23 files / 103 tests, all passing.** Verified: lint (0
 errors/warnings), `tsc --noEmit` (clean), build (clean, `/` First Load JS
 117kB/220kB — unchanged). No REQUIRES HUMAN ACTION items.
+
+---
+
+## Update — Phase 8: Narrative engine, language/RTL, and lifecycle audit (2026-10-19)
+
+Full record in `docs/narrative-i18n-rtl-audit.md`. Summary:
+
+- **Narrative engine**: `lib/ai/*` (the AI concierge pipeline) re-read fresh
+  with no new correctness bugs found. Removed two pieces of genuinely dead,
+  hardcoded-English, never-localized narrative code —
+  `lib/itinerary.ts`'s `journeyWhisper()` and `lib/recommend.ts`'s
+  `whisper()`/`MODE_META` — both leftovers from before Phase 5/6 wired the
+  live, translated `con.*` strings in their place. Closed a real test gap:
+  `components/concierge/Concierge.tsx` (the deterministic-journey +
+  AI-enhancement UI itself) had zero tests despite its dependencies
+  (`lib/ai/*`, the route) being well covered; added 3 tests.
+- **Language/RTL**: I18-3 (translation coverage) re-verified clean via
+  `npm run i18n:check`. I18-2 (RTL) found 5 real physical-CSS leaks
+  (`text-left`/`text-right`/`ml-*`/`mr-*` instead of Tailwind's logical
+  `text-start`/`text-end`/`ms-*`/`me-*`) across the Concierge, HUD menu,
+  AtmospherePicker, PlaceDetail, and the narrator — fixed, and verified with
+  a new structural Playwright test (`tests/e2e/rtl.spec.ts`, passing) that
+  switches to Arabic and asserts `dir="rtl"` + no horizontal overflow. I18-4
+  (SEO `lang` mismatch) was implemented, verified, and **deliberately
+  reverted** after measuring that it silently converts `/` from a static,
+  CDN-cacheable route to a fully dynamic one on every request (confirmed via
+  `next build`'s own `○`/`ƒ` route markers) — flagged as a human decision
+  point rather than shipped as a quiet performance regression; the working,
+  tested implementation is preserved in this session's `git stash`, not
+  deleted.
+- **Lifecycle**: fixed two real listener leaks in `engine/useEnvironment.ts`
+  (battery `levelchange`, `navigator.connection`'s `change`) that had no
+  cleanup at all, unlike every sibling sensor effect in the same file.
+  `engine/audio.ts`'s unremoved `visibilitychange` listener was checked and
+  confirmed intentional (a deliberate module-level singleton for the tab's
+  whole lifetime), not a leak.
+
+Full suite: **24 files / 106 tests, all passing.** Verified: lint (0
+errors/warnings), `tsc --noEmit` (clean), build (clean, `/` First Load JS
+117kB/220kB — unchanged, confirming the I18-4 revert left no residue), and
+the new Playwright RTL spec (passing, Chromium installed this session).
+One item requires your decision — see "I18-4" above and
+`docs/narrative-i18n-rtl-audit.md`'s closing section.
