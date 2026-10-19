@@ -985,8 +985,15 @@ real-API transcript test (manual/scheduled, not per-commit).
 **Security considerations:** this task's entire purpose is security.
 **Performance considerations:** stricter rate limit than data routes, by design.
 
-### AIC-6 — Graceful degradation contract (explicit)
-**Current state:** Implicit today (there is no AI layer to degrade from).
+### AIC-6 — Graceful degradation contract (explicit) — DONE (Phase 11)
+**Resolved.** `docs/ai-concierge.md` now exists — a real gap this entry
+itself had flagged since Phase 5 and that survived every phase claiming
+the AI Concierge "done" until Phase 11's production-readiness audit
+actually checked `ls docs/` instead of trusting the file was there. The
+three-rung ladder below is documented with a test-evidence table, plus a
+fourth, explicitly-named rung this entry didn't anticipate: "response is
+schema-invalid or hallucinates place ids," also tested.
+**Current state (as originally written, kept for context):** Implicit today (there is no AI layer to degrade from).
 **Problem:** Worth stating as an explicit, testable contract once AIC-2/3 exist,
 since it's the thing that makes adding AI *safe* for an app whose core identity
 is "works with zero API keys."
@@ -1728,6 +1735,27 @@ explicitly a no-op, documented as such so it isn't silently forgotten.
 
 ## PHASE 14 — Production Readiness
 *(brief section 14 — naturally last, depends on the rest existing to have something to deploy/monitor/migrate)*
+
+**Status (Phase 11, `RELEASE_CHECKLIST.md` + `FINAL_STATUS.md`):**
+PRD-1 — **done**, `docs/deployment.md` exists with exactly the Vercel
+environment-scoping guidance this entry asked for, plus the full external
+-services and migration-order detail it didn't originally scope but that
+belongs in the same place. PRD-2 — **partially done**: what exists today
+(structured, secret-free stdout logging) is documented, and what's missing
+(no log drain, no Sentry, no alerting) is stated plainly rather than
+invented — actually wiring a third-party monitoring service is a new
+paid-service decision for the project owner, explicitly out of scope for
+this session to activate unilaterally. PRD-3 — **done**, the migration
+-order/prerequisite/rollback documentation is in `docs/deployment.md`.
+PRD-4 — the CI gate itself exists (Phase 10's `.github/workflows/ci.yml`);
+making it **blocking** via GitHub branch protection is a repository
+setting, not a file this session can change — **REQUIRES HUMAN ACTION**.
+PRD-5 (feature flags for AI/presence) — **not implemented this session**;
+a reasonable, well-scoped follow-up (both subsystems already degrade
+cleanly when absent, so this would be a thin env-var gate over existing
+safe paths, not new resilience work) deliberately left for a dedicated
+task rather than added as unscoped extra work during a readiness/
+verification-focused phase.
 
 ### PRD-1 — Environment management across deploy targets
 **Current state:** Single `.env.example`; no documented separation between

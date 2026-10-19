@@ -622,3 +622,58 @@ still `○` static), all 8 Playwright tests passing (5 spec files). See
 `SECURITY_AUDIT.md`'s "Outstanding risks" and "Live verification still
 required" sections for what remains — this audit does not claim the
 application is secure merely because its tests pass.
+
+---
+
+## Update — Phase 11: Production readiness and deployment preparation (2026-10-19)
+
+Full record: `RELEASE_CHECKLIST.md` (READY/BLOCKED/REQUIRES HUMAN ACTION
+per item) and `FINAL_STATUS.md` (the consolidated project snapshot).
+Re-verified from a clean slate — `npm install` re-run, `.next` wiped before
+rebuilding — rather than trusting the prior phase's cached results.
+
+**Production build, verified in a real browser, not just dev mode**: ran
+the full Playwright suite against the actual `npm run start` server (not
+`next dev`) — confirmed by it reusing the already-listening port and
+completing measurably faster (~15s vs. this same suite's ~30s against dev
+mode). **8/8 passing.** Manually smoke-tested every route (including a
+`404` and an empty-body `400`) and confirmed the invalid-API-key fallback
+paths live, with a real request against dummy Google Maps/OpenWeather keys
+— both correctly fell back to synthesized data with zero crash and zero
+leaked error detail, server log confirmed clean.
+
+**A real documentation gap, closed**: `docs/ai-concierge.md` was planned
+back in Phase 5 (`AIC-6`) and never actually written — `ls docs/` this
+phase confirmed it genuinely didn't exist, despite multiple later phases
+describing the AI Concierge as architecturally complete. Written now,
+consolidating the degradation-ladder contract that had only ever existed
+scattered across this file and `SECURITY_AUDIT.md`.
+
+**New/refined docs**: `docs/environment.md` now has the full per-variable
+reference table (purpose/exposure/required-for/configure-in) the task
+asked for; `docs/deployment.md` (new) covers hosting recommendation
+(Vercel, with the actual code evidence for why), exact deployment steps,
+migration order/prerequisites/backup/rollback, external-service
+configuration and failure modes for all four integrations, and monitoring/
+operational-readiness guidance (honestly stating nothing is configured
+yet, not inventing an integration).
+
+**One small, safe fix**: added an `engines.node` field to `package.json`
+(`>=20.0.0`, matching Next 15's own requirement; this project has only
+ever run Node 22.14.0, which satisfies it) — no `engines` field existed
+before, so the Node requirement was previously undocumented anywhere in
+the repo.
+
+Full suite, re-verified fresh this phase: **34 files / 181 tests passing**,
+lint 0 errors/warnings, `tsc --noEmit` clean, production build clean (`/`
+still `○` static, 119 kB/222 kB First Load JS — unchanged), 8/8 Playwright
+against the real production server.
+
+**Final status determination**: see `FINAL_STATUS.md`'s own verdict —
+this phase does not claim production readiness merely because the build
+succeeds; several items remain explicitly BLOCKED (live Supabase/RLS
+verification, live third-party API credentials, monitoring/alerting, CI
+running on a real GitHub Actions execution) or REQUIRES HUMAN ACTION
+(enabling Anonymous Sign-ins, hosting/domain provisioning, branch
+protection). Nothing was deployed, merged to a protected branch, or
+configured against live infrastructure this session.

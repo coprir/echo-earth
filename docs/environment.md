@@ -1,9 +1,41 @@
 # Environment & configuration
 
 How ECHO EARTH's environment variables are validated, scoped, and separated
-across development/preview/production. See `.env.example` for the full list
-of keys and what each one unlocks — this doc is about *architecture*, not an
-inventory.
+across development/preview/production, plus the authoritative per-variable
+reference (Phase 11 — production readiness). `.env.example` stays the
+copy-paste starting point; this table is the one place that documents
+*why* each variable exists and exactly how exposed it is.
+
+## Environment variable reference
+
+**Every variable below is optional.** The app is designed to run correctly
+in full demo mode with zero variables set — verified this phase, fresh,
+against a clean production build and a real browser (`RELEASE_CHECKLIST.md`
+has the evidence). Nothing on this list is required to launch.
+
+This is the complete list — confirmed by grepping every `process.env.*`
+reference in the codebase; nothing is read outside `lib/env.server.ts`/
+`lib/env.client.ts`'s validated schemas except Playwright's own standard
+`CI` variable.
+
+| Variable | Purpose | Exposure | Required for | Configure in |
+|---|---|---|---|---|
+| `GOOGLE_MAPS_API_KEY` | Google Places API (New) — real nearby places instead of synthesized "echo" places | **Secret, server-only** | Live place data (`/api/places`) | `.env.local`, or the hosting platform's server-side env scope |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript SDK — the mood-styled live map tiles under the neural field (`components/map/LivingMap.tsx`) | **Public** — ships in the client bundle by Next.js's own `NEXT_PUBLIC_*` convention; this is Google's own client-side Maps key model, not a leak | Live map tiles | `.env.local`, or the hosting platform (all environments, since it reaches the browser) |
+| `OPENWEATHER_API_KEY` | Live weather via OpenWeather instead of synthesized seasonal weather | **Secret, server-only** | Live weather (`/api/weather`) | `.env.local`, or the hosting platform's server-side env scope |
+| `ANTHROPIC_API_KEY` | AI Concierge narrative/ordering upgrade (`/api/concierge`) — the deterministic journey is the baseline either way | **Secret, server-only** | The "✦ AI-refined" journey upgrade only; the Concierge is fully functional without it | `.env.local`, or the hosting platform's server-side env scope |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | **Public** — a project identifier, not a secret; also read server-side (`lib/env.server.ts`) for the admin client, which needs to know which project to connect to | Any Supabase-backed feature (anonymous identity, future cross-device memory, realtime presence) | `.env.local`, or the hosting platform (all environments) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public API key — the browser client; access control comes from Row Level Security, not from keeping this key secret (by Supabase's own design) | **Public** by design | Same as above | `.env.local`, or the hosting platform (all environments) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key — bypasses RLS entirely; used only by `lib/supabase/server.ts`'s admin client | **Secret, server-only — never client-exposed, enforced at build time by the `server-only` package** | No current code path actually calls the admin client yet (see `ARCHITECTURE.md` §9) — provisioned for when one does | `.env.local`, or the hosting platform's **production-only, server-side** env scope (never a preview/shared scope — see "Development / preview / production separation" below) |
+
+**Test-only values** (not a real environment variable — mentioned here so
+it isn't confused with one): `.github/workflows/ci.yml` sets short, clearly
+-labeled dummy strings (e.g. `ci-dummy-anthropic-key-not-real`) for the
+four secret variables above, for exactly one purpose — proving
+`scripts/checkSecretsInBundle.ts` actually detects a real secret value if
+one ever leaked into the client bundle. These values are never used to
+call a real API, never appear outside that one CI job, and are not
+something to set in any real environment.
 
 ## Validation layers
 
@@ -89,3 +121,13 @@ the local Docker daemon needed for `supabase start` isn't running here
 the migration locally (`supabase start && supabase db push`, once Docker
 Desktop is started) or against a real project is the needed verification
 step before any live Supabase traffic should flow through this schema.
+
+A second, later migration
+(`supabase/migrations/20261019000000_presence_realtime_authorization.sql`,
+realtime explorer presence) depends on the *same* anonymous-sign-in setting
+above — no separate dashboard toggle — but adds its own required manual
+verification step once applied (confirm an authenticated session can join
+a `presence:city:*` channel and an unauthenticated one is rejected); see
+that migration's own header and `docs/realtime-presence.md` for the full
+checklist. Same live-verification blocker as above: not yet run against
+any real Supabase project.

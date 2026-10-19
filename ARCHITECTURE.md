@@ -438,3 +438,20 @@ Full record in `SECURITY_AUDIT.md`. Summarized here as architecture facts:
   `app/layout.tsx` carries a canonical URL, Twitter card fields, and a
   minimal `WebApplication` JSON-LD block — every fact in all three reuses
   text already stated elsewhere in the same file, nothing invented.
+
+## 14. Production readiness (Phase 11)
+
+Full record in `RELEASE_CHECKLIST.md` and `FINAL_STATUS.md`. Deployment
+target, migration order, external-service configuration/fallback/cost/
+failure modes, and operational guidance all live in `docs/deployment.md`;
+the complete environment-variable reference lives in `docs/environment.md`.
+Recommended hosting: **Vercel** — the app already assumes it (`/api/geo`'s
+`x-vercel-ip-*` header strategy, `export const runtime = "edge"`,
+`docs/environment.md`'s existing Vercel-scoped environment-separation
+guidance), confirmed by reading the source, not inferred from the brief.
+`package.json` now declares `engines.node: ">=20.0.0"` — previously
+undocumented anywhere in the repo. Node.js server (any platform) remains a
+viable alternative; it loses the free Vercel edge-header geolocation path
+(falls back to the already-implemented IP-lookup strategy) and needs its
+own trusted reverse proxy for `lib/rateLimit.ts`'s IP-based limiting to be
+meaningful.
