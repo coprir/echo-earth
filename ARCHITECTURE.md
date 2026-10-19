@@ -61,6 +61,7 @@ echo-earth/
 │   ├── environment.ts          # genome: EnvSignals → Theme (pure functions)
 │   ├── useEnvironment.ts       # nervous system: all browser sensors → signals
 │   ├── useAdaptiveMind.ts      # memory: affinities, mood mode, travel mode
+│   ├── useEscapeToClose.ts     # shared hook: Escape closes any dismissible overlay
 │   └── audio.ts                # generative ambient synth (WebAudio), visibility-aware
 ├── components/
 │   ├── organism/
@@ -282,7 +283,12 @@ other languages, including the narrator (`nar.*`), journey (`journey.*`), and
 atmosphere (`atmo.*`) namespaces. Language is auto-selected from IP country
 (falling back to browser language, then English), persists across sessions,
 and can be overridden manually via `HudMenu`/`LangSwitcher`. Arabic switches
-the document to RTL.
+the document to RTL. `<html lang>` is server-rendered as a static `"en"` and
+corrected client-side on mount — a deliberate tradeoff, not an oversight: a
+server-side `Accept-Language` read was built, verified, and reverted after
+confirming it forces the whole app out of static rendering (see
+`PROJECT_STATUS.md`'s checkpoint note and `docs/i18n-a11y-performance-audit.md`
+§2).
 
 ## 8. Motion design system
 
@@ -359,6 +365,26 @@ composition, and the journey composer — both had zero coverage before Phase 6)
 
 ARIA roles on every control (radiogroup for modes, `menuitemcheckbox` with
 `aria-checked` for the sound toggle, `menuitemradio` for language options),
-canvas labeled as `role="img"`, full `prefers-reduced-motion` shutdown,
-text contrast pinned to ≥ 90 % lightness variables, all interactions reachable
-without the canvas (orbs + detail panel are plain buttons/links).
+canvas labeled as `role="img"`, all interactions reachable without the canvas
+(orbs + detail panel are plain buttons/links). Native keyboard focus rings
+are never suppressed anywhere (`outline`/`outline-none` is unused in the
+whole codebase). Every dismissible overlay (Concierge, About, PlaceDetail,
+the HUD menu, AtmospherePicker, LangSwitcher) closes on Escape via one shared
+hook, `engine/useEscapeToClose.ts`.
+
+**`prefers-reduced-motion`** is honored at two layers: `engine/environment.ts`
+zeroes particles/motion-intensity for the big WebGL/animation-intensity
+systems, and `app/page.tsx` wraps the whole tree in framer-motion's
+`<MotionConfig reducedMotion="user">`, which automatically suppresses every
+smaller `motion.*` transition (modal/dropdown spring-ins, the narrator's
+blur/fade) too — the latter was a real gap closed in the Phase 9 audit
+(`docs/i18n-a11y-performance-audit.md`), not present from the start.
+
+**Text contrast**: `--ee-text` (≥ 90 % lightness) and `--ee-textDim` clear
+WCAG AA/AAA against every background sampled (measured, not assumed — see
+the Phase 9 audit doc for the actual contrast-ratio table). `--ee-accent`,
+used as small text color in one place (the Concierge's "✦ AI-refined"
+badge), does **not** universally clear AA — it measures 3.38:1 in the
+"Palefire" (winter daytime) mood, below the 4.5:1 normal-text threshold.
+Flagged as an open design decision, not silently fixed (see `PRF-1`-style
+tracking in `IMPLEMENTATION_PLAN.md`).

@@ -367,3 +367,132 @@ errors/warnings), `tsc --noEmit` (clean), build (clean, `/` First Load JS
 the new Playwright RTL spec (passing, Chromium installed this session).
 One item requires your decision — see "I18-4" above and
 `docs/narrative-i18n-rtl-audit.md`'s closing section.
+
+---
+
+## Checkpoint verification (2026-10-19, post-Phase-8)
+
+Re-ran against a fresh session, before starting any new feature work, per
+your request to confirm Phase 8's claims rather than trust the prior report:
+
+- **Git state**: branch `claude-autonomous-development`, HEAD = `82551e2`
+  (exactly the commit Phase 8 reported), working tree clean. One stash entry
+  present (`stash@{0}`), untouched — not applied, not dropped.
+- **Lint / TypeScript / tests / build — all re-run from scratch, all match
+  the Phase 8 report exactly**: `npm run lint` 0 errors/warnings, `tsc
+  --noEmit` clean, full suite **24 files / 106 tests passing**, `npm run
+  build` clean with `/` still `○` static at 117 kB/220 kB First Load JS.
+  Nothing in the claimed milestone was overstated.
+- **Stash contents, inspected (not applied)**: `stash@{0}` contains exactly
+  one file, `app/layout.tsx` (+14/−2 lines) — the `headers()`-based
+  Accept-Language → `<html lang/dir>` change described in Phase 8, nothing
+  unrelated. **Correction to the Phase 8 writeup**: the stash is *not* a
+  complete, re-appliable implementation on its own. `lib/i18n.server.ts` and
+  `lib/i18n.server.test.ts` (the `langFromAcceptLanguage`/`dirFromLang`
+  functions that stashed `layout.tsx` imports) were deleted with a plain
+  `rm` while still untracked by git, before they were ever committed —
+  `git log --all` confirms no commit ever contained them, and a plain
+  `rm` on untracked files leaves nothing for `git stash`, any commit, or
+  `git fsck` to recover. The stashed `layout.tsx` diff alone would not build
+  (missing import). If this fix is wanted later, `lib/i18n.server.ts` needs
+  to be rewritten from the description in
+  `docs/narrative-i18n-rtl-audit.md` — it is not sitting ready to reapply.
+- **I18-4 decision re-examined, no new action taken**: confirmed
+  `app/layout.tsx` still ships static `<html lang="en">`, and
+  `app/page.tsx`'s existing effect (`autoFromNavigator()` →
+  `autoFromCountry()` → `document.documentElement.lang/dir`) still runs and
+  is the only thing correcting it, client-side, after mount — unchanged,
+  still the full extent of "current language behavior." No demonstrated
+  functional defect in that behavior (no hydration warnings, no visible
+  wrong-direction flash reported or found) — only the already-documented,
+  crawler-only `lang="en"` mismatch for visitors who never execute JS. Per
+  instruction to prefer current working behavior absent a demonstrated
+  defect: **no change made.** A theoretical static-compatible alternative
+  (Edge Middleware rewriting the static HTML's `lang` attribute at the byte
+  level, so `/` stays CDN-cacheable) was considered but not implemented —
+  it can't be verified in this sandbox (no real Edge/CDN deployment to test
+  chunk-boundary and caching-header interactions against), so implementing
+  it un-verified would violate the same "don't ship what you can't verify"
+  standard Phase 8 applied to the `headers()` approach. Left exactly as
+  documented in Phase 8: a human decision, not implemented.
+- **No work discarded.** Nothing was reset, cleaned, or stash-dropped.
+
+**No blockers to report beyond the pre-existing ones** (Supabase live
+verification, real third-party API keys, `npm audit` advisories) — all
+already on record from earlier phases, untouched here. Realtime presence
+and all other new feature work remain explicitly out of scope for this
+checkpoint.
+
+---
+
+## Update — Phase 9: Internationalization, RTL/accessibility, and performance audit (2026-10-19)
+
+Full record in `docs/i18n-a11y-performance-audit.md`. Summary:
+
+- **i18n**: confirmed 9 languages from source, re-verified the existing
+  translation-completeness checker (`npm run i18n:check`, already CI-gated)
+  still reports zero missing keys. Found and fixed the one real gap: the
+  language-gate's own `aria-label` and footer text were hardcoded English,
+  never translated — added `gate.aria`/`gate.footer` keys to all 9
+  dictionaries and wired them to the auto-detected language. Documented
+  (not changed) three deliberate exceptions: the root crash-fallback text,
+  single-language `<head>` metadata, and the AI concierge's unenforced
+  "respond in this language" instruction.
+- **Accept-Language (I18-4)**: re-examined, not re-implemented. Confirmed
+  no functional defect in the current client-side-correction behavior;
+  confirmed no verifiable static-compatible alternative exists in this
+  sandbox. No dynamic rendering introduced — `/` stays `○` static.
+- **RTL/accessibility**: fixed 3 real bugs (an unhidden decorative marker
+  polluting a button's accessible name; a screen-reader-silent "hidden gem"
+  indicator; no dismissible overlay closed on Escape — fixed app-wide with
+  one new shared hook, `engine/useEscapeToClose.ts`, across 6 components).
+  Wired `prefers-reduced-motion` into every framer-motion UI transition app-
+  wide via `<MotionConfig reducedMotion="user">` (previously only the big
+  WebGL/motion-intensity systems respected it). Measured real WCAG contrast
+  ratios against the actual palette formulas across 6 moods — found one
+  real sub-AA case (`accent` text in "Palefire"/winter-day mode, 3.38:1),
+  documented with exact numbers as a design decision, not silently
+  recolored. Confirmed already-correct: focus rings (never suppressed), no
+  directional icons to mis-mirror, map-control labels, dropdown anchor
+  logic.
+- **Performance**: measured bundle before/after (118 kB/221 kB vs. the
+  prior phase's 117 kB/220 kB — a real, small, reported-honestly increase
+  from this phase's own additions). Found and removed one fully-unused
+  dependency, `gsap` (never imported anywhere in source, 6.4 MB on disk) —
+  corrects a since-Phase-5 open question in `IMPLEMENTATION_PLAN.md`'s
+  `PRF-2`. Re-read `ParticleField.tsx` and `NeuralMap.tsx` fresh for
+  rerenders/leaks — both already well-architected (R3F's own GL disposal;
+  the "latest ref" pattern avoiding effect churn); no changes needed.
+- **Adaptive experience**: `PRF-1` (particle density not scaled by device
+  perf tier) re-confirmed as a still-deliberate, unchanged product
+  decision — added a regression test that would fail if a future change
+  accidentally altered it, instead of touching the decision itself.
+
+**One real bug caught by writing a test, not by inspection**:
+`langFromNavigator()`'s SSR-safety guard checked `typeof navigator ===
+"undefined"`, which Node 18+'s own built-in global `navigator` silently
+defeats (confirmed: Node 22's `navigator.language` returns `"en-US"`).
+Never a live bug (only ever called from inside a client effect), but the
+guard's own claim was wrong; fixed to guard on `window` instead, matching
+this codebase's own correct idiom elsewhere.
+
+Full suite: **29 files / 139 tests, all passing** (was 24/106 — +5 files,
++33 tests). Both Playwright specs passing
+(`tests/e2e/rtl.spec.ts`, `tests/e2e/reduced-motion.spec.ts`). Verified:
+lint (0 errors/warnings), `tsc --noEmit` (clean), production build (clean,
+`/` still `○` static).
+
+**Remaining items requiring human action/decision**:
+1. The Accept-Language/static-rendering tradeoff (unchanged from the
+   checkpoint note above).
+2. The "Palefire" accent-text contrast finding (3.38:1, below AA) —
+   needs a palette-level decision, not a mechanical fix.
+3. AI concierge response language is instructed but not verified —
+   spot-check once a real `ANTHROPIC_API_KEY` is configured.
+4. 9-language terminology-consistency review — needs native speakers per
+   language, not attempted here beyond one spot-check.
+5. Pre-existing items unchanged: Supabase live verification, real
+   third-party API keys, remaining `npm audit` advisories (now 17: 3
+   moderate/11 high/3 critical, all transitive dev-tooling — same category
+   as the original baseline, number differs because the advisory database
+   itself changed since, not because of anything in this phase).

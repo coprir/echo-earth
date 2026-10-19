@@ -61,7 +61,14 @@ export function langFromCountry(country: string | null | undefined, city?: strin
 }
 
 export function langFromNavigator(): Lang | null {
-  if (typeof navigator === "undefined") return null;
+  // guard on `window`, not `navigator`: Node 18+ ships a built-in global
+  // `navigator` (its own experimental Navigator API, `navigator.language`
+  // defaults to the OS locale, e.g. "en-US") — `typeof navigator ===
+  // "undefined"` is no longer a reliable SSR check and would silently read
+  // the server's own locale instead of returning null. `window` genuinely
+  // doesn't exist in Node, matching the guard already used for this same
+  // purpose elsewhere (engine/useEnvironment.ts's detectDevice).
+  if (typeof window === "undefined") return null;
   const two = (navigator.language || "en").slice(0, 2).toLowerCase();
   return (LANGS.find((l) => l.code === two)?.code as Lang) ?? null;
 }
@@ -73,6 +80,10 @@ export function langFromNavigator(): Lang | null {
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  // language gate (first screen, before any language is chosen — keyed off
+  // the auto-detected suggestion, same mechanism that highlights it)
+  "gate.aria": "Choose your language",
+  "gate.footer": "you can change this anytime",
   // HUD
   "hud.locating": "locating…",
   "hud.mood": "mood",
@@ -263,6 +274,7 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  "gate.aria": "Choisissez votre langue", "gate.footer": "vous pouvez changer cela à tout moment",
   "hud.locating": "localisation…", "hud.mood": "humeur", "net.fast": "réseau rapide", "net.slow": "réseau lent",
   "travel.walking": "à pied", "travel.driving": "en voiture", "hud.about": "Qu'est-ce qu'Echo Earth ?",
   "hud.sound.on": "Activer le son ambiant", "hud.sound.off": "Couper le son", "hud.lang": "Langue", "hud.senses": "Ce que perçoit l'organisme",
@@ -320,6 +332,7 @@ const fr: Dict = {
 };
 
 const es: Dict = {
+  "gate.aria": "Elige tu idioma", "gate.footer": "puedes cambiar esto en cualquier momento",
   "hud.locating": "localizando…", "hud.mood": "ánimo", "net.fast": "red rápida", "net.slow": "red lenta",
   "travel.walking": "caminando", "travel.driving": "conduciendo", "hud.about": "¿Qué es Echo Earth?",
   "hud.sound.on": "Activar sonido ambiente", "hud.sound.off": "Silenciar sonido", "hud.lang": "Idioma", "hud.senses": "Lo que percibe el organismo",
@@ -377,6 +390,7 @@ const es: Dict = {
 };
 
 const de: Dict = {
+  "gate.aria": "Sprache wählen", "gate.footer": "du kannst das jederzeit ändern",
   "hud.locating": "ortung…", "hud.mood": "stimmung", "net.fast": "netz schnell", "net.slow": "netz langsam",
   "travel.walking": "zu Fuß", "travel.driving": "fahrend", "hud.about": "Was ist Echo Earth?",
   "hud.sound.on": "Umgebungston aktivieren", "hud.sound.off": "Ton stummschalten", "hud.lang": "Sprache", "hud.senses": "Was der Organismus wahrnimmt",
@@ -434,6 +448,7 @@ const de: Dict = {
 };
 
 const ru: Dict = {
+  "gate.aria": "Выберите язык", "gate.footer": "вы можете изменить это в любое время",
   "hud.locating": "поиск…", "hud.mood": "настроение", "net.fast": "сеть быстрая", "net.slow": "сеть медленная",
   "travel.walking": "пешком", "travel.driving": "за рулём", "hud.about": "Что такое Echo Earth?",
   "hud.sound.on": "Включить фоновый звук", "hud.sound.off": "Выключить звук", "hud.lang": "Язык", "hud.senses": "Что чувствует организм",
@@ -491,6 +506,7 @@ const ru: Dict = {
 };
 
 const el: Dict = {
+  "gate.aria": "Επιλέξτε γλώσσα", "gate.footer": "μπορείτε να το αλλάξετε οποτεδήποτε",
   "hud.locating": "εντοπισμός…", "hud.mood": "διάθεση", "net.fast": "δίκτυο γρήγορο", "net.slow": "δίκτυο αργό",
   "travel.walking": "με τα πόδια", "travel.driving": "οδηγώντας", "hud.about": "Τι είναι το Echo Earth;",
   "hud.sound.on": "Ενεργοποίηση ήχου", "hud.sound.off": "Σίγαση ήχου", "hud.lang": "Γλώσσα", "hud.senses": "Τι αντιλαμβάνεται ο οργανισμός",
@@ -548,6 +564,7 @@ const el: Dict = {
 };
 
 const ar: Dict = {
+  "gate.aria": "اختر لغتك", "gate.footer": "يمكنك تغيير ذلك في أي وقت",
   "hud.locating": "تحديد الموقع…", "hud.mood": "المزاج", "net.fast": "شبكة سريعة", "net.slow": "شبكة بطيئة",
   "travel.walking": "مشياً", "travel.driving": "بالسيارة", "hud.about": "ما هو Echo Earth؟",
   "hud.sound.on": "تشغيل الصوت المحيط", "hud.sound.off": "كتم الصوت", "hud.lang": "اللغة", "hud.senses": "ما يستشعره الكائن",
@@ -605,6 +622,7 @@ const ar: Dict = {
 };
 
 const zh: Dict = {
+  "gate.aria": "选择你的语言", "gate.footer": "你可以随时更改",
   "hud.locating": "定位中…", "hud.mood": "氛围", "net.fast": "网络快", "net.slow": "网络慢",
   "travel.walking": "步行", "travel.driving": "驾车", "hud.about": "什么是 Echo Earth？",
   "hud.sound.on": "开启环境音", "hud.sound.off": "静音", "hud.lang": "语言", "hud.senses": "有机体所感知的",
@@ -662,6 +680,7 @@ const zh: Dict = {
 };
 
 const tr: Dict = {
+  "gate.aria": "Dilinizi seçin", "gate.footer": "bunu her zaman değiştirebilirsin",
   "hud.locating": "konum bulunuyor…", "hud.mood": "ruh hali", "net.fast": "ağ hızlı", "net.slow": "ağ yavaş",
   "travel.walking": "yürüyerek", "travel.driving": "araçla", "hud.about": "Echo Earth nedir?",
   "hud.sound.on": "Ortam sesini aç", "hud.sound.off": "Sesi kapat", "hud.lang": "Dil", "hud.senses": "Organizmanın algıladıkları",

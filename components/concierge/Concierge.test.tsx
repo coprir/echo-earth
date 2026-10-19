@@ -183,4 +183,17 @@ describe("Concierge", () => {
 
     await waitFor(() => expect(screen.getByText("Aurora Beans")).toBeInTheDocument(), { timeout: 3000 });
   });
+
+  it("closes on Escape, like any dialog should", async () => {
+    render(
+      <Concierge lat={null} lon={null} city={null} env={env()} theme={theme()} onFocusPlace={noop} autoOpen={false} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /open|concierge/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    // the dialog's exit animation (AnimatePresence) unmounts it asynchronously
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
 });

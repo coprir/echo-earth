@@ -1190,14 +1190,25 @@ any are found, get a tracked follow-up rather than blocking this task).
 **Security considerations:** none.
 **Performance considerations:** none (build-time tool only).
 
-### I18-2 — RTL behavior audit
-**Current state:** `lib/i18n.ts` correctly identifies Arabic as the only RTL
+### I18-2 — RTL behavior audit — DONE (Phase 8 + Phase 9)
+**Resolved.** `lib/i18n.ts` correctly identifies Arabic as the only RTL
 language (`dirOf`), and `app/page.tsx` sets `document.documentElement.dir`
-reactively. Not yet verified: whether layout primitives across `components/`
-use logical CSS properties (`margin-inline-start` etc.) vs. physical ones
-(`margin-left`) that would visually break when mirrored, and whether
-directional icons (e.g. arrows, the Concierge's "→" affordances if any) flip
-correctly.
+reactively. The physical-vs-logical CSS question below was real: Phase 8
+found and fixed 5 leaks (`text-left`/`text-right`/`ml-*`/`mr-*` → logical
+`text-start`/`text-end`/`ms-*`/`me-*`) across Concierge, HudMenu,
+AtmospherePicker, PlaceDetail, and Consciousness; Phase 9 re-audited and
+confirmed no directional icons exist anywhere in the UI to mis-mirror (no
+arrows or left/right-meaningful glyphs were ever added). The Playwright test
+proposed below exists (`tests/e2e/rtl.spec.ts`) and passes. See
+`docs/narrative-i18n-rtl-audit.md` and `docs/i18n-a11y-performance-audit.md`
+for the full records.
+**Current state (as originally written, kept for context):** `lib/i18n.ts`
+correctly identifies Arabic as the only RTL language (`dirOf`), and
+`app/page.tsx` sets `document.documentElement.dir` reactively. Not yet
+verified: whether layout primitives across `components/` use logical CSS
+properties (`margin-inline-start` etc.) vs. physical ones (`margin-left`)
+that would visually break when mirrored, and whether directional icons (e.g.
+arrows, the Concierge's "→" affordances if any) flip correctly.
 **Problem:** RTL bugs are easy to introduce incrementally and only visible when
 actually testing in Arabic — brief §9 explicitly asks for this check.
 **Proposed solution:** A manual + automated pass: switch to Arabic in a running
@@ -1231,8 +1242,19 @@ etc. are spelled identically or near-identically in French/German/Spanish).
 **No translation work is required here.** This task is closed; see `ARCHITECTURE.md` §6–7 for the corrected, verified description of both the
 concierge and the narrator, and `npm run i18n:check` to reproduce.
 
-### I18-4 — Language persistence & SEO implications
-**Current state:** Language auto-detection (IP country → navigator language →
+### I18-4 — Language persistence & SEO implications — PARTIALLY RE-EXAMINED (checkpoint + Phase 9)
+**Update:** the "minimally, read Accept-Language server-side" half of this
+item was actually implemented, verified correct, and then deliberately
+reverted after measuring that it converts `/` from static to fully dynamic
+rendering app-wide — see the checkpoint-verification note in
+`PROJECT_STATUS.md` and `docs/i18n-a11y-performance-audit.md` §2 for the
+full record. Phase 9 re-evaluated the explicitly-suggested static-compatible
+alternatives (predictable default, client-side negotiation, explicit
+persistence) and found all three already implemented and working, with no
+demonstrated functional defect — so no code changed. The bigger
+per-language-routing question below remains fully open, unchanged, still a
+decision for you.
+**Current state (as originally written):** Language auto-detection (IP country → navigator language →
 English) plus manual override persisted via zustand (`lib/i18n.ts` uses
 `persist` middleware per its imports). `app/layout.tsx` hardcodes
 `<html lang="en">`, only corrected client-side after hydration in `app/page.tsx`
@@ -1320,16 +1342,22 @@ hypothetical risk.
 
 ### PRF-2 — Bundle size / code-splitting audit
 **Current state:** Production build output (from the baseline check) shows `/`
-at 91.5 kB page weight / 194 kB first load JS — not alarming for a WebGL-heavy
-app, but `three`, `@react-three/fiber`, `@react-three/drei`, `framer-motion`,
-and `gsap` are all present simultaneously; `ParticleField` is already correctly
+at 91.5 kB page weight / 194 kB first load JS (now 118 kB / 221 kB as of the
+Phase 9 audit — growth is real and accounted for across phases, see
+`PROJECT_STATUS.md`) — not alarming for a WebGL-heavy app. **Correction (Phase
+9, `docs/i18n-a11y-performance-audit.md`):** this entry's speculation that
+`gsap` was "used presumably in `PlanetaryEntry`/`LivingEarth`" was checked
+directly and was wrong — `gsap` was never imported anywhere in the source,
+confirmed by grepping the whole repo. It has been **removed** from
+`package.json` (`npm uninstall gsap`, 6.4 MB off `node_modules`); there is
+nothing left to code-split for it. `three`, `@react-three/fiber`, and
+`@react-three/drei` remain, and `ParticleField` is already correctly
 dynamically imported with `ssr: false` in `app/page.tsx` (good existing
-practice). Not yet verified: whether `gsap` (used presumably in
-`PlanetaryEntry`/`LivingEarth`) and `drei` are also scoped to dynamic imports,
-or bundled into the initial chunk unconditionally.
+practice). Not yet verified: whether `drei` is also scoped to a dynamic
+import, or bundled into the initial chunk unconditionally.
 **Problem:** Brief §10 asks to audit "client-side JavaScript" generally.
 **Proposed solution:** Run `next build` with `ANALYZE=true` (via
-`@next/bundle-analyzer`) and confirm every Three.js/GSAP-touching component
+`@next/bundle-analyzer`) and confirm every Three.js-touching component
 (`PlanetaryEntry`, `LivingEarth`, `ParticleField`, `NeuralMap` if it uses
 canvas-heavy deps) is dynamically imported with `ssr: false` the same way
 `ParticleField` already correctly is; fix any that aren't (additive change,

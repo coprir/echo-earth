@@ -9,12 +9,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { LANGS, useLang, useT } from "@/lib/i18n";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 export default function LangSwitcher() {
   const lang = useLang((s) => s.lang);
   const setLang = useLang((s) => s.setLang);
   const { t } = useT();
   const [open, setOpen] = useState(false);
+  useEscapeToClose(open, () => setOpen(false));
 
   return (
     <div className="relative shrink-0 pointer-events-auto">
@@ -54,7 +56,7 @@ export default function LangSwitcher() {
                       style={{ background: active ? "var(--ee-glow)" : "transparent", color: active ? "var(--ee-text)" : "var(--ee-text-dim)" }}
                     >
                       {l.label}
-                      {active && <span style={{ color: "var(--ee-accent)" }}>●</span>}
+                      {active && <span aria-hidden style={{ color: "var(--ee-accent)" }}>●</span>}
                     </button>
                   </li>
                 );

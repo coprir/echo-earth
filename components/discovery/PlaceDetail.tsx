@@ -9,9 +9,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { Place } from "@/lib/places";
 import { categoryById } from "@/lib/places";
 import { useT } from "@/lib/i18n";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 export default function PlaceDetail({ place, onClose }: { place: Place | null; onClose: () => void }) {
   const { t } = useT();
+  useEscapeToClose(place !== null, onClose);
   return (
     <AnimatePresence>
       {place && (

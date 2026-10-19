@@ -11,12 +11,14 @@ import { useState } from "react";
 import { LANGS, useLang, useT } from "@/lib/i18n";
 import { ambient } from "@/engine/audio";
 import type { Theme } from "@/engine/environment";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; audioMood: Theme["audioMood"] }) {
   const { t } = useT();
   const lang = useLang((s) => s.lang);
   const setLang = useLang((s) => s.setLang);
   const [open, setOpen] = useState(false);
+  useEscapeToClose(open, () => setOpen(false));
   const [sound, setSound] = useState(false);
 
   const toggleSound = () => {

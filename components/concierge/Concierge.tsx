@@ -20,6 +20,7 @@ import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
 import type { EnvSignals, Theme } from "@/engine/environment";
 import { useT } from "@/lib/i18n";
 import type { ConciergeCandidate } from "@/lib/ai/types";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 type Step = "intent" | "loading" | "journey";
 
@@ -181,6 +182,7 @@ export default function Concierge({
   }
 
   const close = () => setOpen(false);
+  useEscapeToClose(open, close);
   const tapStop = (p: Place) => {
     onFocusPlace(p);
     setOpen(false);
@@ -329,7 +331,12 @@ export default function Concierge({
                             <span className="flex items-center gap-1.5 text-sm" style={{ color: "var(--ee-text)" }}>
                               <span aria-hidden>{stopIcon(s.place.category)}</span>
                               <span className="truncate">{s.place.name}</span>
-                              {s.place.isGem && <span className="text-[10px] text-yellow-200/80">✦</span>}
+                              {s.place.isGem && (
+                                <span className="text-[10px] text-yellow-200/80">
+                                  <span aria-hidden>✦</span>
+                                  <span className="sr-only"> {t("detail.gem")}</span>
+                                </span>
+                              )}
                             </span>
                             <span className="block text-[11px] italic leading-snug" style={{ color: "var(--ee-text-dim)" }}>
                               {aiNarrative ? s.note : energy ? t(`journey.${energy}.${s.stepKey}`) : s.note}
