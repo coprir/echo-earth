@@ -562,3 +562,63 @@ any live project.
 new migration against a real (or local Docker-backed) Supabase project per
 its own header's checklist; everything else about the feature is
 implemented and test-verified with mocks.
+
+---
+
+## Update — Phase 10: Security, QA, and SEO hardening (2026-10-19)
+
+Full record in `SECURITY_AUDIT.md`. Re-read every API route, the Supabase
+migrations, the AI pipeline, and the recommendation/environment/narrator
+engines fresh, rather than trusting prior phases' own summaries.
+
+**The headline finding**: `npm audit` surfaced that `next` **itself** (not
+a dev-tooling transitive dependency) carried multiple CRITICAL,
+unauthenticated-RCE-class CVEs — contradicting every prior phase's "all
+advisories are dev/build-tooling only, not exploitable app-facing issues"
+characterization. Fixed via `npm audit fix` (non-breaking): 15.5.19 →
+**15.5.28**, within the existing `^15.5.19` range. `npm audit`'s total
+dropped from 17 to 11 vulnerabilities; everything remaining is genuinely
+dev-tooling-only (ESLint/Vitest transitive chains) or requires a Next v16
+major bump, both deliberately not attempted this pass — see
+`SECURITY_AUDIT.md`'s dependency table for the reasoning on each.
+
+**Also fixed**: `/api/concierge` had no request-body size limit before
+parsing (added a 64KB guard, 413 before `req.json()`); `/api/geo` trusted
+edge-proxy-header coordinates without validating they're real, in-range
+numbers (now matches `/api/weather`/`/api/places`'s existing validation);
+no baseline security response headers existed anywhere (added via
+`next.config.ts`); a Google Place ID was interpolated into a Maps URL
+without encoding (defense-in-depth fix). No `dangerouslySetInnerHTML`,
+`eval`, or model-generated-URL trust issue was found anywhere in the AI
+pipeline — confirmed by a full-repo grep, not assumed.
+
+**SEO**: added Twitter/X card metadata and a real, generated, on-brand
+social preview image (`next/og`, verified as an actual 1200×630 PNG served
+from the running production build — not just source), a canonical URL,
+and a minimal fact-only `WebSite` JSON-LD block. Verified every change in
+the actual generated HTML/image output and confirmed `/` stayed statically
+rendered throughout.
+
+**Supabase/RLS**: re-traced every policy in both migrations by hand
+(identity RLS + the new presence-authorization migration) — a user cannot
+read or modify another user's private data, by this static analysis.
+**Not live-verified** — no hosted project linked, Docker daemon confirmed
+not running this phase (not just assumed from prior notes).
+
+**CI**: `.github/` didn't exist. Added `.github/workflows/ci.yml` (lint,
+typecheck, tests, i18n check, build, Playwright e2e) — every step verified
+green locally; the workflow itself hasn't run on a real GitHub Actions
+runner yet.
+
+**New E2E coverage**: `tests/e2e/critical-journey.spec.ts` (the actual
+launch→demo-discovery→concierge→journey→place-detail path, in a real
+browser, against this app's real zero-API-key fallback) and
+`tests/e2e/mobile.spec.ts` (phone viewport, critical chrome + no
+overflow).
+
+Full suite: **34 files / 181 tests, all passing**. Verified: lint (0
+errors/warnings), `tsc --noEmit` (clean), production build (clean, `/`
+still `○` static), all 8 Playwright tests passing (5 spec files). See
+`SECURITY_AUDIT.md`'s "Outstanding risks" and "Live verification still
+required" sections for what remains — this audit does not claim the
+application is secure merely because its tests pass.

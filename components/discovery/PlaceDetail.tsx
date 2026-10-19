@@ -67,7 +67,7 @@ export default function PlaceDetail({ place, onClose }: { place: Place | null; o
               {t("detail.route")}
             </a>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.source === "google" ? place.id : ""}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.source === "google" ? encodeURIComponent(place.id) : ""}`}
               target="_blank"
               rel="noreferrer"
               className="px-4 grid place-items-center text-sm rounded-xl"

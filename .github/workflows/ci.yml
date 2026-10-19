@@ -1,0 +1,102 @@
+name: CI
+
+# Runs the same checks every phase of this project has verified locally
+# (lint, typecheck, unit tests, i18n completeness, production build) plus
+# the Playwright end-to-end suite, on every push/PR. Deliberately uses zero
+# secrets — the whole app is designed to work in full demo mode with no
+# environment variables set, so CI exercises exactly that path, the same
+# as every local verification pass recorded in PROJECT_STATUS.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel a stale run on the same branch/PR when a new commit lands, instead
+# of letting both finish — keeps the check list on a PR current and saves
+# CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests, i18n, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Unit/integration tests
+        run: npm run test
+
+      - name: Translation completeness
+        run: npm run i18n:check
+
+      - name: Production build
+        run: npm run build
+
+      # SEC-4 in IMPLEMENTATION_PLAN.md: rebuild with recognizable dummy
+      # values for every server-only secret, then confirm none of those
+      # values ended up in the client-reachable bundle. The normal build
+      # above (no secrets set) can't exercise this check at all — there's
+      # no secret value to look for — so this is a second, deliberate,
+      # short-lived build, not redundant with it.
+      - name: Production build with dummy secrets (for the leak check below)
+        run: npm run build
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: "ci-dummy-service-role-key-not-real"
+          ANTHROPIC_API_KEY: "ci-dummy-anthropic-key-not-real"
+          OPENWEATHER_API_KEY: "ci-dummy-openweather-key-not-real"
+          GOOGLE_MAPS_API_KEY: "ci-dummy-google-maps-key-not-real"
+          NEXT_PUBLIC_SUPABASE_URL: "https://ci-dummy-project.supabase.co"
+
+      - name: Verify no secret value leaked into the client bundle
+        run: npm run check:secrets-in-bundle
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: "ci-dummy-service-role-key-not-real"
+          ANTHROPIC_API_KEY: "ci-dummy-anthropic-key-not-real"
+          OPENWEATHER_API_KEY: "ci-dummy-openweather-key-not-real"
+          GOOGLE_MAPS_API_KEY: "ci-dummy-google-maps-key-not-real"
+
+  e2e:
+    name: Playwright end-to-end
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e suite
+        run: npx playwright test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

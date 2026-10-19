@@ -28,6 +28,20 @@ describe("/api/geo", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("ignores malformed/out-of-range edge-header coordinates instead of trusting them as a live source", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 503 })));
+    const { GET } = await import("./route");
+    const res = await GET(
+      req({
+        "x-vercel-ip-latitude": "not-a-number",
+        "x-vercel-ip-longitude": "999", // out of range even if it parsed
+        "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}`,
+      })
+    );
+    const body = await res.json();
+    expect(body.source).not.toBe("edge-header");
+  });
+
   it("falls back to the hardcoded default when the IP lookup fails", async () => {
     vi.stubGlobal(
       "fetch",

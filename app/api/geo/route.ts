@@ -21,18 +21,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "rate limited" }, { status: 429, headers: { "Retry-After": String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } });
   }
 
-  // 1. Platform headers (Vercel / Cloudflare) — free and instant
+  // 1. Platform headers (Vercel / Cloudflare) — free and instant. Vercel's
+  // own edge network sets/overwrites `x-vercel-*` headers, but this app
+  // doesn't control whether it's actually deployed behind Vercel or
+  // Cloudflare in every environment — validate the parsed values as real
+  // coordinates before trusting them as a "live" source, the same bar
+  // /api/weather and /api/places already hold their own lat/lon inputs to,
+  // rather than returning parseFloat("garbage") -> NaN dressed up as success.
   const hLat = req.headers.get("x-vercel-ip-latitude") ?? req.headers.get("cf-iplatitude");
   const hLon = req.headers.get("x-vercel-ip-longitude") ?? req.headers.get("cf-iplongitude");
-  if (hLat && hLon) {
+  const parsedLat = hLat ? parseFloat(hLat) : NaN;
+  const parsedLon = hLon ? parseFloat(hLon) : NaN;
+  const validHeaderCoords =
+    Number.isFinite(parsedLat) && Number.isFinite(parsedLon) && parsedLat >= -90 && parsedLat <= 90 && parsedLon >= -180 && parsedLon <= 180;
+  if (validHeaderCoords) {
     log.info({ route: "/api/geo", branch: "edge-header" });
     return NextResponse.json({
-      lat: parseFloat(hLat),
-      lon: parseFloat(hLon),
+      lat: parsedLat,
+      lon: parsedLon,
       city: req.headers.get("x-vercel-ip-city") ?? null,
       country: req.headers.get("x-vercel-ip-country") ?? req.headers.get("cf-ipcountry"),
       source: "edge-header",
     });
+  } else if (hLat || hLon) {
+    log.warn({ route: "/api/geo", branch: "invalid_edge_header" });
   }
 
   // 2. Free IP geolocation (dev / self-hosted)

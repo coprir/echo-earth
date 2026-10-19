@@ -1443,6 +1443,30 @@ use while walking around a city."
 ## PHASE 11 — Security Hardening
 *(brief section 11 — most individual controls are embedded in the phase that creates their risk; this phase is the closing, cross-cutting audit)*
 
+**Status (Phase 10 security audit, `SECURITY_AUDIT.md`):** SEC-1 (route
+input validation) — already correct, re-confirmed, no shared `lib/validate.ts`
+module was needed (zod schemas live appropriately per-route already).
+SEC-2 (rate-limiting coverage) — closed for real: `scripts/rateLimitCoverage.test.ts`
+(runs in CI via `npm run test`) asserts every `app/api/**/route.ts`
+imports `lib/rateLimit.ts`, failing CI if a future route forgets it, per
+this entry's own proposed solution. SEC-3 (RLS penetration
+checklist/pgTAP) — **not done**: no pgTAP suite exists (needs a live
+Postgres with the `pgtap` extension, blocked on the same Docker-daemon
+gap every Supabase item in this plan has hit); a manual SQL-level policy
+trace was done instead and is documented in `SECURITY_AUDIT.md`, explicitly
+not claimed as live-verified. SEC-4 (secrets-in-bundle CI check) — closed
+for real: `scripts/checkSecretsInBundle.ts` + a dedicated CI step
+(`.github/workflows/ci.yml`) that builds with recognizable dummy secret
+values and fails if any leak into `.next/static/`; the detection mechanism
+itself was proven this phase with a deliberately-planted fixture file,
+caught, then removed (matching this entry's own acceptance criteria).
+SEC-5 (privacy review sign-off) — no standalone `docs/privacy-review.md`
+was written; its intent is substantially covered across
+`SECURITY_AUDIT.md`'s "Supabase and access control"/"AI security" sections
+and `docs/realtime-presence.md`'s dedicated threat model, but not
+consolidated into one sign-off document — flagged as still open if a
+single document is specifically wanted.
+
 ### SEC-1 — API route input validation
 **Current state:** All three existing routes validate `lat`/`lon` as parseable
 floats and `category` against the known enum (confirmed by reading
@@ -1540,6 +1564,22 @@ an entry.
 ## PHASE 12 — Testing Architecture Consolidation
 *(brief section 12 — the scaffold was front-loaded as FND-1; this phase is about coverage completeness and CI, not new mechanics)*
 
+**Status (Phase 10 audit):** TST-1 — no standalone `docs/test-coverage-map.md`
+was written; `SECURITY_AUDIT.md`'s "End-to-end quality assurance" section
+maps each of the brief's critical-journey categories to the test file(s)
+covering it, which substantively serves the same purpose, but isn't a
+literal 1:1 checklist document. TST-2 — **done**, with one deliberate
+scope reduction: `.github/workflows/ci.yml` runs install → lint → `tsc
+--noEmit` → unit/integration tests → i18n check → build → a secrets-in
+-bundle leak check (SEC-4) → the full Playwright e2e suite (4 specs, small
+enough that "a subset" wasn't necessary to hit a reasonable time budget).
+**Not included**: local-Supabase integration tests in CI — would need a
+Postgres+Supabase CLI service container in the workflow, which wasn't
+set up this pass (no live/local Supabase verification has been possible
+in this sandbox at all — see `SECURITY_AUDIT.md`'s "Live verification
+still required"). The workflow itself has not yet run on a real GitHub
+Actions runner.
+
 ### TST-1 — Coverage completeness pass
 **Current state:** By this point in the plan, unit tests exist per-task
 (recommendation engine, i18n checker, AI context builder, geohash, rate
@@ -1586,6 +1626,19 @@ hit the time budget.
 
 ## PHASE 13 — SEO / Social
 *(brief section 13 — low risk, independent, can run in parallel with almost anything)*
+
+**Status (Phase 10 security/QA/SEO audit, `SECURITY_AUDIT.md`):** SEO-1
+(OG image) — **done**, exactly as proposed: `app/opengraph-image.tsx` via
+`next/og`'s `ImageResponse`, dark-gradient + accent-glow palette matching
+the real app (not invented colors), verified as an actual 200/image-png
+1200×630 response from a running production build, not just source.
+SEO-2 (Twitter card) — **done**, reuses the same generated image via
+`app/twitter-image.tsx`. SEO-3 (structured data) — **done**, using exactly
+this entry's own recommended `WebApplication` type (not generic `WebSite`)
+with `applicationCategory: "TravelApplication"`, verified present in the
+real generated HTML. SEO-4 (sitemap/robots for multilingual content) —
+still correctly a no-op; I18-4 has not resolved toward route-based i18n
+(see `PROJECT_STATUS.md`'s Phase 9 update), so there is nothing to extend.
 
 ### SEO-1 — OpenGraph image
 **Current state:** `app/layout.tsx`'s `openGraph` metadata has `title`,

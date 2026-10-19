@@ -362,16 +362,22 @@ inline comments for why tests are split into a "node" and a "jsdom" Vitest
 project (not cosmetic — it's how `server-only`'s client-import guard is both
 exercised and worked around for legitimate server-side logic tests).
 
-23 test files / 103 tests as of Phase 7 (`npm test`), covering: env/Supabase
-client-boundary guards, the rate limiter and fetch-timeout utilities, the i18n
-completeness checker, the AudioContext visibility lifecycle, error boundaries,
-the anonymous-session hook, the City Consciousness narrator's candidate
--weighting logic, the full AI concierge pipeline (context building,
-candidate capping, schema validation, the anti-hallucination gate, caching,
-rate limiting, and prompt-injection resistance — all against a mocked
-Anthropic boundary, no real API key used anywhere in the suite), and the
-recommendation engine (category/place scoring golden cases, filter/rank
-composition, and the journey composer — both had zero coverage before Phase 6).
+**34 test files / 181 tests as of Phase 10** (`npm test`), covering:
+env/Supabase client-boundary guards, the rate limiter and fetch-timeout
+utilities, the i18n completeness checker, the AudioContext visibility
+lifecycle, error boundaries, the anonymous-session hook, the City
+Consciousness narrator's candidate-weighting logic, the full AI concierge
+pipeline (context building, candidate capping, schema validation, the
+anti-hallucination gate, caching, rate limiting, oversized-payload
+rejection, and prompt-injection resistance — all against a mocked
+Anthropic boundary, no real API key used anywhere in the suite), the
+recommendation engine, realtime presence (`engine/usePresence.ts`, mocked
+Supabase Realtime), geohash bucketing, and a CI-enforced check that every
+`app/api/**/route.ts` imports the rate limiter
+(`scripts/rateLimitCoverage.test.ts`). Plus 5 Playwright e2e spec files (8
+tests) covering RTL, reduced motion, the critical launch→discovery
+→concierge→journey→place-detail path, a mobile viewport, and generated
+SEO metadata/images — against a real Chromium instance, not mocks.
 
 ## 12. Accessibility despite the spectacle
 
@@ -400,3 +406,35 @@ badge), does **not** universally clear AA — it measures 3.38:1 in the
 "Palefire" (winter daytime) mood, below the 4.5:1 normal-text threshold.
 Flagged as an open design decision, not silently fixed (see `PRF-1`-style
 tracking in `IMPLEMENTATION_PLAN.md`).
+
+## 13. Security, CI, and SEO (Phase 10)
+
+Full record in `SECURITY_AUDIT.md`. Summarized here as architecture facts:
+
+- **`next` itself is kept current for security, not just features.**
+  `npm audit` surfaced that the framework's own version (not a dev-tooling
+  transitive dependency) carried multiple critical, unauthenticated-RCE
+  -class CVEs; fixed by bumping within the existing `^15.5.19` range (now
+  15.5.28), verified compatible with the full lint/test/build/e2e suite.
+  Re-check `npm audit` periodically — this is a moving target, not a
+  one-time fix.
+- **Baseline security headers** (`X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`) are set site-wide via
+  `next.config.ts`'s `headers()`. No Content-Security-Policy yet —
+  deliberately deferred until the Google Maps JS SDK's dynamic script
+  loading (`components/map/LivingMap.tsx`) can be tested against a real
+  CSP in a browser, not guessed at.
+- **CI exists**: `.github/workflows/ci.yml` — lint, typecheck, unit/
+  integration tests, i18n completeness, production build, a
+  secrets-in-client-bundle leak check (builds with dummy secret values,
+  greps `.next/static/` for them — the detection mechanism itself was
+  proven with a planted-then-removed fixture, not just written and
+  trusted), and the full Playwright e2e suite. Every route under
+  `app/api/**` is required to import the rate limiter, enforced by
+  `scripts/rateLimitCoverage.test.ts`, not just a one-time manual check.
+- **SEO/social**: `app/opengraph-image.tsx`/`twitter-image.tsx` generate a
+  real, on-brand 1200×630 preview image at build time via `next/og`
+  (verified as an actual served PNG, not just source); `metadata` in
+  `app/layout.tsx` carries a canonical URL, Twitter card fields, and a
+  minimal `WebApplication` JSON-LD block — every fact in all three reuses
+  text already stated elsewhere in the same file, nothing invented.

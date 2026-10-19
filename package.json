@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "i18n:check": "vite-node scripts/check-i18n.ts"
+    "i18n:check": "vite-node scripts/check-i18n.ts",
+    "check:secrets-in-bundle": "vite-node scripts/checkSecretsInBundle.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",

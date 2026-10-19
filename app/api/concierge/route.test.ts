@@ -130,6 +130,22 @@ describe("/api/concierge", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects an oversized body (by its declared Content-Length) with 413, before ever parsing it", async () => {
+    const { POST } = await import("./route");
+    const hugeReq = new NextRequest(new URL("http://localhost/api/concierge"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "203.0.113.9",
+        "content-length": String(10 * 1024 * 1024), // 10MB, declared only — body below is small
+      },
+      body: JSON.stringify(validBody()),
+    });
+    const res = await POST(hugeReq);
+    expect(res.status).toBe(413);
+    expect(requestConciergeCompletionMock).not.toHaveBeenCalled();
+  });
+
   it("is resistant to prompt injection attempted via a candidate's name field — validation is id-based, not text-based", async () => {
     requestConciergeCompletionMock.mockResolvedValue({
       narrative: "A route",

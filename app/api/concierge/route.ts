@@ -29,6 +29,15 @@ import { log } from "@/lib/log";
 const LIMIT = 10;
 const WINDOW_MS = 60_000;
 
+// A well-formed request is at most ~60 candidates × a few hundred bytes
+// each (ConciergeRequestSchema already bounds every field) — a few tens of
+// KB covers any legitimate payload with headroom. Rejecting an oversized
+// body by its declared Content-Length, before `req.json()` ever runs,
+// avoids spending parse time/memory on a payload schema validation would
+// reject anyway (platforms like Vercel cap this further upstream, but this
+// app has no such guarantee when self-hosted).
+const MAX_BODY_BYTES = 64 * 1024;
+
 export async function POST(req: NextRequest) {
   const key = clientKey(req);
   const limit = checkRateLimit(`concierge:${key}`, LIMIT, WINDOW_MS);
@@ -38,6 +47,12 @@ export async function POST(req: NextRequest) {
       { ai: null },
       { status: 429, headers: { "Retry-After": String(Math.ceil((limit.resetAt - Date.now()) / 1000)) } }
     );
+  }
+
+  const declaredLength = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    log.warn({ route: "/api/concierge", branch: "payload_too_large" });
+    return NextResponse.json({ error: "payload too large" }, { status: 413 });
   }
 
   let body: unknown;
