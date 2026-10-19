@@ -496,3 +496,69 @@ lint (0 errors/warnings), `tsc --noEmit` (clean), production build (clean,
    moderate/11 high/3 critical, all transitive dev-tooling — same category
    as the original baseline, number differs because the advisory database
    itself changed since, not because of anything in this phase).
+
+---
+
+## Update — Phase 9 (realtime): Privacy-preserving explorer presence (2026-10-19)
+
+Full architecture, privacy threat model, and testing record in
+`docs/realtime-presence.md`. Implements `PHASE 8 — Realtime Presence`
+(`RTP-1`/`2`/`3` in `IMPLEMENTATION_PLAN.md`), re-derived against a
+stricter brief than originally sketched — see that doc's "Deviations"
+section.
+
+**Architecture**: Supabase Realtime Presence, one channel per city
+(`presence:city:<slug>`), no new table — presence state lives only in
+Realtime's in-memory tracker, gone the instant a socket disconnects.
+Each client tracks exactly one field, `{ cell }` (a 5-character geohash,
+~4.9km × 4.9km, `lib/geohash.ts`) — raw coordinates never leave the
+browser for this feature, confirmed by an explicit test assertion, not
+just a design claim.
+
+**Privacy**: no persisted identifier, no persisted data at all, no
+timestamp ever trusted or sent, no bearing/distance mapping in the
+rendered UI (`PresenceField.tsx` renders a count-driven decorative
+scatter, not a map of any kind — a deliberate, documented strengthening
+beyond the original plan's "randomized offset within the cell"). The UI
+never claims anyone is online unless a real Realtime connection confirms
+it; disconnected/misconfigured looks identical to "no one else is here."
+
+**Authorization**: reuses the existing anonymous-identity architecture
+(`engine/useSupabaseSession.ts`) — the hook never joins a channel without
+an active session, and a new migration
+(`supabase/migrations/20261019000000_presence_realtime_authorization.sql`)
+enables Supabase Realtime Authorization (RLS on `realtime.messages`)
+server-side so the same requirement is enforced independently of this
+app's own client code. **Not verified against a live Supabase project** —
+no hosted project is linked and Docker isn't running in this sandbox, same
+limitation as the existing `SUP-1`/`SUP-2` migrations. The migration's own
+header documents the exact manual verification steps required before any
+live traffic.
+
+**Tests**: 35 new tests across `lib/geohash.test.ts` (8), `lib/presence.test.ts`
+(10), `engine/usePresence.test.tsx` (10, mocked Supabase client — session
+init, coarse-location enforcement, unauthorized-access guard, reconnect,
+offline/channel-error degradation, cleanup on unmount), and
+`components/organism/PresenceField.test.tsx` (7 — no-fake-presence
+rendering, aria-live announcement, mote cap, reduced-motion). All mocked;
+none exercise a live Supabase Realtime server.
+
+Full suite: **33 files / 174 tests, all passing** (was 29/139). Verified:
+lint (0 errors/warnings), `tsc --noEmit` (clean), production build (clean,
+`/` still `○` static, First Load JS 119kB/222kB — confirmed the Supabase
+SDK still isn't pulled into the client bundle unconditionally: the whole
+feature added ~1kB, nowhere near the ~70kB the SDK would add if it loaded
+eagerly, because `engine/usePresence.ts` dynamically imports
+`@/lib/supabase/client` only inside its effect, same pattern as
+`useSupabaseSession.ts`).
+
+**Not deployed or enabled for production automatically** — the feature is
+code-complete and wired into `app/page.tsx`, but inert without Supabase
+configured (same fail-open pattern as every other optional subsystem), and
+the authorization migration has not been applied to or verified against
+any live project.
+
+**Requires human action before live use**: apply and manually verify the
+new migration against a real (or local Docker-backed) Supabase project per
+its own header's checklist; everything else about the feature is
+implemented and test-verified with mocks.

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEnvironment } from "@/engine/useEnvironment";
 import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
 import { useSupabaseSession } from "@/engine/useSupabaseSession";
+import { usePresence } from "@/engine/usePresence";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
 import { rankCategories, buildValidCandidates } from "@/lib/recommend";
@@ -25,6 +26,7 @@ import PlaceDetail from "@/components/discovery/PlaceDetail";
 import VitalsHUD from "@/components/hud/VitalsHUD";
 import Consciousness from "@/components/organism/Consciousness";
 import AtmospherePicker from "@/components/discovery/AtmospherePicker";
+import PresenceField from "@/components/organism/PresenceField";
 import Concierge from "@/components/concierge/Concierge";
 import About from "@/components/about/About";
 import LanguageGate from "@/components/i18n/LanguageGate";
@@ -52,6 +54,14 @@ export default function EchoEarth() {
   // bootstraps a Supabase anonymous session when Supabase is configured;
   // a complete no-op otherwise (demo mode is unaffected either way)
   useSupabaseSession();
+
+  // realtime explorer presence — ambient, privacy-preserving, see
+  // docs/realtime-presence.md. Only joins once the organism is "awake"
+  // (matches the existing pattern of deferring non-critical subsystems
+  // until after the planetary intro); no-ops entirely without Supabase
+  // configured or without an active session, same fail-open design as
+  // every other optional subsystem in this app.
+  const presence = usePresence({ enabled: awake, lat: env.lat, lon: env.lon, city: env.city, country: env.country });
 
   useEffect(() => {
     setMounted(true);
@@ -240,6 +250,11 @@ export default function EchoEarth() {
               onSelect={pickPlace}
               motionIntensity={theme.motionIntensity}
               onZoom={(z) => setMapZoom(Math.round(z * 10) / 10)}
+            />
+            <PresenceField
+              othersCount={presence.othersCount}
+              connected={presence.status === "connected"}
+              reducedMotion={env.prefersReducedMotion}
             />
             {visiblePlaces.length === 0 && (
               <div className="absolute inset-0 grid place-items-center pointer-events-none">

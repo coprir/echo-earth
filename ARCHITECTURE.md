@@ -62,11 +62,13 @@ echo-earth/
 │   ├── useEnvironment.ts       # nervous system: all browser sensors → signals
 │   ├── useAdaptiveMind.ts      # memory: affinities, mood mode, travel mode
 │   ├── useEscapeToClose.ts     # shared hook: Escape closes any dismissible overlay
+│   ├── usePresence.ts          # realtime explorer presence — see §9, docs/realtime-presence.md
 │   └── audio.ts                # generative ambient synth (WebAudio), visibility-aware
 ├── components/
 │   ├── organism/
 │   │   ├── ParticleField.tsx   # WebGL atmosphere (rain/snow/embers/fireflies)
-│   │   └── Consciousness.tsx   # the translated narrator — see §5
+│   │   ├── Consciousness.tsx   # the translated narrator — see §5
+│   │   └── PresenceField.tsx   # realtime explorer presence, visual half — see §9
 │   ├── planet/
 │   │   ├── PlanetaryEntry.tsx  # the boot sequence: holographic 3D Earth → dive-in
 │   │   └── LivingEarth.tsx     # the 3D planet mesh PlanetaryEntry renders
@@ -307,25 +309,35 @@ confirming it forces the whole app out of static rendering (see
 
 ## 9. Backend & data
 
-Stateless API routes (deployable to Vercel edge). Supabase is **schema-only
-today** — `supabase/migrations/` holds a tracked, CLI-managed migration
-(moved verbatim from the former hand-run `supabase/schema.sql`) describing
-anonymous-first `visitors`, `affinities`, `interactions`, `saved_places`, the
-`ai_suggestions` cache, and `city_moods`, but **no application code reads or
-writes any of these tables yet** (confirmed: no `@supabase/supabase-js` usage
-outside the new `lib/supabase/client.ts`/`server.ts` factories, which exist
-but aren't called from any page/route yet). `lib/env.server.ts`/
-`lib/supabase/server.ts` are guarded with `server-only` so
-`SUPABASE_SERVICE_ROLE_KEY` can never reach the browser bundle — see
-`docs/environment.md`. The known RLS gap in the current migration
-(`user_id = auth.uid() or user_id is null`, which doesn't correctly scope
-anonymous visitors from each other) is tracked, not yet fixed — see `SUP-1`/
-`SUP-2` in `IMPLEMENTATION_PLAN.md` before wiring any real traffic through it.
+Stateless API routes (deployable to Vercel edge). `supabase/migrations/`
+holds tracked, CLI-managed migrations describing anonymous-first
+`visitors`, `affinities`, `interactions`, `saved_places`, the
+`ai_suggestions` cache, and `city_moods`. `engine/useSupabaseSession.ts`
+bootstraps an anonymous Supabase Auth session for every visitor (client-
+side, `lib/supabase/client.ts`'s factory); the RLS fix migration
+(`user_id = auth.uid()`, strictly scoped, with a trigger that never trusts
+a client-supplied `user_id`) depends on that session existing. None of
+this has been verified against a live database — see `SUP-1`/`SUP-2` in
+`IMPLEMENTATION_PLAN.md` and `docs/environment.md` before wiring any real
+traffic through it. `lib/env.server.ts`/`lib/supabase/server.ts` are
+guarded with `server-only` so `SUPABASE_SERVICE_ROLE_KEY` can never reach
+the browser bundle.
 
-Realtime location streaming: Supabase Realtime channel per city slug —
-presence updates make other explorers appear as faint anonymous sparks
-(planned; not implemented — see `IMPLEMENTATION_PLAN.md` Phase RTP for the
-privacy-preserving design this requires before implementation).
+**Realtime explorer presence** (implemented, not live-verified — full
+record in `docs/realtime-presence.md`): one Supabase Realtime Presence
+channel per city slug (`engine/usePresence.ts`), no new table — presence
+is intentionally ephemeral, living only in Realtime's in-memory tracker
+for as long as a socket is connected. Each client tracks a single coarse
+geohash cell (`lib/geohash.ts`, ~4.9km × 4.9km); the visible result
+(`components/organism/PresenceField.tsx`) is a count-driven decorative
+scatter, not a map of any kind — no bearing, distance, or individual
+position is ever rendered or even computed for display. A dedicated
+migration enables Supabase Realtime Authorization (RLS on
+`realtime.messages`) so only an authenticated (anonymous sign-in counts)
+connection can join. "Planned; not implemented" (this section's prior
+wording) no longer applies — it is implemented and tested with mocks; live
+Realtime/RLS verification is the remaining gap, same shape as the identity
+migration above.
 
 ## 10. UX flow
 

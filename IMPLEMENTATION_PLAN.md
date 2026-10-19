@@ -1073,6 +1073,14 @@ continuously-running feature.
 ## PHASE 8 — Realtime Presence
 *(brief section 8 — privacy-first by explicit instruction)*
 
+**IMPLEMENTED (code-complete, not live-verified)** — see
+`docs/realtime-presence.md` for the full architecture, threat model, and
+test record, and `PROJECT_STATUS.md`'s "Phase 9 (realtime)" update. RTP-1
+through RTP-3 below were each implemented with real, documented deviations
+from the original sketch — read `docs/realtime-presence.md`'s own
+"Deviations from the original RTP-1/2/3 plan" section before treating any
+"Proposed solution" text below as literally what shipped.
+
 ### RTP-1 — Privacy-preserving presence model (design)
 **Current state:** `ARCHITECTURE.md` §7 describes this as "planned next phase;
 schema already supports it" — but the *current* schema (`visitors` table) has no

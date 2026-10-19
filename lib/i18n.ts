@@ -257,6 +257,8 @@ const en: Dict = {
   "field.growing": "growing the city…",
   "field.demo": "demo city · no API key",
   "field.aria": "Discovery field",
+  // realtime explorer presence — see docs/realtime-presence.md
+  "presence.nearby": "{n} other explorers nearby",
   "map.hint": "scroll / pinch to zoom · drag to pan",
   "map.zoomin": "Zoom in",
   "map.zoomout": "Zoom out",
@@ -327,6 +329,7 @@ const fr: Dict = {
   "cat.cafes": "Cafés", "cat.restaurants": "Restaurants", "cat.cocktails": "Bars à Cocktails", "cat.taverns": "Tavernes", "cat.clubs": "Clubs", "cat.hotels": "Hôtels", "cat.beaches": "Plages", "cat.scenic": "Panoramas", "cat.gems": "Trésors Cachés", "cat.petrol": "Stations", "cat.pharmacies": "Pharmacies", "cat.gyms": "Salles de Sport", "cat.fastfood": "Restauration Rapide", "cat.coworking": "Coworking", "cat.aria": "Catégories de lieux",
   "detail.gem": "trésor caché", "detail.open": "ouvert", "detail.closed": "fermé", "detail.route": "M'y emmener", "detail.maps": "Ouvrir dans Maps", "detail.demo": "lieu de démonstration — ajoutez une clé Google Maps pour la vraie ville", "detail.close": "Fermer les détails",
   "field.growing": "la ville pousse…", "field.demo": "ville démo · sans clé API", "field.aria": "Champ de découverte",
+  "presence.nearby": "{n} autres explorateurs à proximité",
   "map.hint": "molette / pincer pour zoomer · glisser pour déplacer", "map.zoomin": "Zoomer", "map.zoomout": "Dézoomer", "map.reset": "Réinitialiser la vue", "map.aria": "Carte neuronale des lieux proches — zoomer, glisser", "map.zoomgroup": "Commandes de zoom",
   "entry.kicker": "echo earth", "entry.locating": "la Terre vous localise…", "entry.presence": "une présence près de {city}", "entry.presence.generic": "une présence à la surface", "entry.mood": "la planète est {mood} aujourd'hui", "entry.survival": "économie — entrée discrète", "entry.sync": "synchronisation. tombez avec moi…",
 };
@@ -385,6 +388,7 @@ const es: Dict = {
   "cat.cafes": "Cafés", "cat.restaurants": "Restaurantes", "cat.cocktails": "Coctelerías", "cat.taverns": "Tabernas", "cat.clubs": "Clubes", "cat.hotels": "Hoteles", "cat.beaches": "Playas", "cat.scenic": "Miradores", "cat.gems": "Tesoros Ocultos", "cat.petrol": "Gasolineras", "cat.pharmacies": "Farmacias", "cat.gyms": "Gimnasios", "cat.fastfood": "Comida Rápida", "cat.coworking": "Coworking", "cat.aria": "Categorías de lugares",
   "detail.gem": "tesoro oculto", "detail.open": "abierto ahora", "detail.closed": "cerrado", "detail.route": "Llévame allí", "detail.maps": "Abrir en Maps", "detail.demo": "lugar de demostración — añade una clave de Google Maps para la ciudad real", "detail.close": "Cerrar detalles",
   "field.growing": "creciendo la ciudad…", "field.demo": "ciudad demo · sin clave API", "field.aria": "Campo de descubrimiento",
+  "presence.nearby": "{n} otros exploradores cerca",
   "map.hint": "rueda / pellizcar para zoom · arrastrar para mover", "map.zoomin": "Acercar", "map.zoomout": "Alejar", "map.reset": "Restablecer vista", "map.aria": "Mapa neuronal de lugares cercanos — zoom, arrastrar", "map.zoomgroup": "Controles de zoom",
   "entry.kicker": "echo earth", "entry.locating": "la Tierra te está localizando…", "entry.presence": "una presencia cerca de {city}", "entry.presence.generic": "una presencia en la superficie", "entry.mood": "el planeta está {mood} hoy", "entry.survival": "ahorrando — entrando en silencio", "entry.sync": "sincronizando. cae conmigo…",
 };
@@ -443,6 +447,7 @@ const de: Dict = {
   "cat.cafes": "Cafés", "cat.restaurants": "Restaurants", "cat.cocktails": "Cocktailbars", "cat.taverns": "Tavernen", "cat.clubs": "Clubs", "cat.hotels": "Hotels", "cat.beaches": "Strände", "cat.scenic": "Aussichten", "cat.gems": "Geheimtipps", "cat.petrol": "Tankstellen", "cat.pharmacies": "Apotheken", "cat.gyms": "Fitnessstudios", "cat.fastfood": "Fast Food", "cat.coworking": "Coworking", "cat.aria": "Ortskategorien",
   "detail.gem": "Geheimtipp", "detail.open": "jetzt geöffnet", "detail.closed": "geschlossen", "detail.route": "Bring mich hin", "detail.maps": "In Maps öffnen", "detail.demo": "Demo-Ort — füge einen Google-Maps-Schlüssel hinzu für die echte Stadt", "detail.close": "Details schließen",
   "field.growing": "die Stadt wächst…", "field.demo": "Demo-Stadt · kein API-Schlüssel", "field.aria": "Entdeckungsfeld",
+  "presence.nearby": "{n} andere Entdecker in der Nähe",
   "map.hint": "scrollen / kneifen zum Zoomen · ziehen zum Bewegen", "map.zoomin": "Vergrößern", "map.zoomout": "Verkleinern", "map.reset": "Ansicht zurücksetzen", "map.aria": "Neuronale Karte naher Orte — zoomen, ziehen", "map.zoomgroup": "Zoom-Steuerung",
   "entry.kicker": "echo earth", "entry.locating": "die Erde ortet dich…", "entry.presence": "eine Präsenz nahe {city}", "entry.presence.generic": "eine Präsenz an der Oberfläche", "entry.mood": "der Planet ist heute {mood}", "entry.survival": "sparmodus — leiser Eintritt", "entry.sync": "synchronisiere. fall mit mir…",
 };
@@ -501,6 +506,7 @@ const ru: Dict = {
   "cat.cafes": "Кафе", "cat.restaurants": "Рестораны", "cat.cocktails": "Коктейль-бары", "cat.taverns": "Таверны", "cat.clubs": "Клубы", "cat.hotels": "Отели", "cat.beaches": "Пляжи", "cat.scenic": "Виды", "cat.gems": "Скрытые Жемчужины", "cat.petrol": "Заправки", "cat.pharmacies": "Аптеки", "cat.gyms": "Спортзалы", "cat.fastfood": "Фастфуд", "cat.coworking": "Коворкинг", "cat.aria": "Категории мест",
   "detail.gem": "скрытая жемчужина", "detail.open": "открыто сейчас", "detail.closed": "закрыто", "detail.route": "Проложить маршрут", "detail.maps": "Открыть в Maps", "detail.demo": "демо-место — добавьте ключ Google Maps для настоящего города", "detail.close": "Закрыть детали",
   "field.growing": "город прорастает…", "field.demo": "демо-город · без ключа API", "field.aria": "Поле открытий",
+  "presence.nearby": "{n} других исследователей рядом",
   "map.hint": "колесо / щипок для зума · перетаскивание", "map.zoomin": "Приблизить", "map.zoomout": "Отдалить", "map.reset": "Сбросить вид", "map.aria": "Нейронная карта мест рядом — зум, перетаскивание", "map.zoomgroup": "Управление зумом",
   "entry.kicker": "echo earth", "entry.locating": "Земля находит вас…", "entry.presence": "присутствие рядом с {city}", "entry.presence.generic": "присутствие на поверхности", "entry.mood": "сегодня планета — {mood}", "entry.survival": "экономия — тихий вход", "entry.sync": "синхронизация. падайте со мной…",
 };
@@ -559,6 +565,7 @@ const el: Dict = {
   "cat.cafes": "Καφέ", "cat.restaurants": "Εστιατόρια", "cat.cocktails": "Μπαρ Κοκτέιλ", "cat.taverns": "Ταβέρνες", "cat.clubs": "Κλαμπ", "cat.hotels": "Ξενοδοχεία", "cat.beaches": "Παραλίες", "cat.scenic": "Θέες", "cat.gems": "Κρυμμένοι Θησαυροί", "cat.petrol": "Βενζινάδικα", "cat.pharmacies": "Φαρμακεία", "cat.gyms": "Γυμναστήρια", "cat.fastfood": "Φαστ Φουντ", "cat.coworking": "Coworking", "cat.aria": "Κατηγορίες μερών",
   "detail.gem": "κρυμμένος θησαυρός", "detail.open": "ανοιχτό τώρα", "detail.closed": "κλειστό", "detail.route": "Οδήγησέ με εκεί", "detail.maps": "Άνοιγμα στο Maps", "detail.demo": "μέρος επίδειξης — πρόσθεσε κλειδί Google Maps για την αληθινή πόλη", "detail.close": "Κλείσιμο λεπτομερειών",
   "field.growing": "η πόλη μεγαλώνει…", "field.demo": "πόλη επίδειξης · χωρίς κλειδί API", "field.aria": "Πεδίο ανακάλυψης",
+  "presence.nearby": "{n} άλλοι εξερευνητές εδώ κοντά",
   "map.hint": "κύλιση / τσίμπημα για ζουμ · σύρε για μετακίνηση", "map.zoomin": "Μεγέθυνση", "map.zoomout": "Σμίκρυνση", "map.reset": "Επαναφορά προβολής", "map.aria": "Νευρωνικός χάρτης κοντινών μερών — ζουμ, σύρσιμο", "map.zoomgroup": "Χειριστήρια ζουμ",
   "entry.kicker": "echo earth", "entry.locating": "η Γη σε εντοπίζει…", "entry.presence": "μια παρουσία κοντά στην {city}", "entry.presence.generic": "μια παρουσία στην επιφάνεια", "entry.mood": "ο πλανήτης είναι {mood} σήμερα", "entry.survival": "εξοικονόμηση — ήσυχη είσοδος", "entry.sync": "συγχρονισμός. πέσε μαζί μου…",
 };
@@ -617,6 +624,7 @@ const ar: Dict = {
   "cat.cafes": "مقاهٍ", "cat.restaurants": "مطاعم", "cat.cocktails": "بارات كوكتيل", "cat.taverns": "حانات", "cat.clubs": "نوادٍ", "cat.hotels": "فنادق", "cat.beaches": "شواطئ", "cat.scenic": "مناظر", "cat.gems": "كنوز خفية", "cat.petrol": "محطات وقود", "cat.pharmacies": "صيدليات", "cat.gyms": "صالات رياضية", "cat.fastfood": "وجبات سريعة", "cat.coworking": "عمل مشترك", "cat.aria": "فئات الأماكن",
   "detail.gem": "كنز خفي", "detail.open": "مفتوح الآن", "detail.closed": "مغلق", "detail.route": "خذني إلى هناك", "detail.maps": "افتح في الخرائط", "detail.demo": "مكان تجريبي — أضف مفتاح خرائط Google لإظهار المدينة الحقيقية", "detail.close": "إغلاق التفاصيل",
   "field.growing": "المدينة تنمو…", "field.demo": "مدينة تجريبية · بلا مفتاح API", "field.aria": "حقل الاكتشاف",
+  "presence.nearby": "{n} مستكشفين آخرين قريبين",
   "map.hint": "مرّر / اقرص للتكبير · اسحب للتحريك", "map.zoomin": "تكبير", "map.zoomout": "تصغير", "map.reset": "إعادة ضبط العرض", "map.aria": "خريطة عصبية للأماكن القريبة — تكبير، سحب", "map.zoomgroup": "أدوات التكبير",
   "entry.kicker": "echo earth", "entry.locating": "الأرض تحدّد موقعك…", "entry.presence": "حضور قرب {city}", "entry.presence.generic": "حضور على السطح", "entry.mood": "الكوكب اليوم {mood}", "entry.survival": "توفير — دخول هادئ", "entry.sync": "مزامنة. اسقط معي…",
 };
@@ -675,6 +683,7 @@ const zh: Dict = {
   "cat.cafes": "咖啡馆", "cat.restaurants": "餐厅", "cat.cocktails": "鸡尾酒吧", "cat.taverns": "小酒馆", "cat.clubs": "夜店", "cat.hotels": "酒店", "cat.beaches": "海滩", "cat.scenic": "观景", "cat.gems": "隐藏珍宝", "cat.petrol": "加油站", "cat.pharmacies": "药房", "cat.gyms": "健身房", "cat.fastfood": "快餐", "cat.coworking": "联合办公", "cat.aria": "地点分类",
   "detail.gem": "隐藏珍宝", "detail.open": "营业中", "detail.closed": "已打烊", "detail.route": "带我去那里", "detail.maps": "在地图中打开", "detail.demo": "回声生成的演示地点——添加 Google 地图密钥以呈现真实城市", "detail.close": "关闭详情",
   "field.growing": "城市正在生长…", "field.demo": "演示城市 · 无 API 密钥", "field.aria": "发现场域",
+  "presence.nearby": "附近有 {n} 位探索者",
   "map.hint": "滚动 / 捏合缩放 · 拖动平移", "map.zoomin": "放大", "map.zoomout": "缩小", "map.reset": "重置视图", "map.aria": "附近地点的神经地图——缩放、拖动", "map.zoomgroup": "缩放控制",
   "entry.kicker": "echo earth", "entry.locating": "地球正在定位你…", "entry.presence": "在 {city} 附近的存在", "entry.presence.generic": "地表上的一个存在", "entry.mood": "今天的星球是 {mood}", "entry.survival": "节能——静默进入", "entry.sync": "同步中。与我一同坠落…",
 };
@@ -733,6 +742,7 @@ const tr: Dict = {
   "cat.cafes": "Kafeler", "cat.restaurants": "Restoranlar", "cat.cocktails": "Kokteyl Barları", "cat.taverns": "Meyhaneler", "cat.clubs": "Kulüpler", "cat.hotels": "Oteller", "cat.beaches": "Plajlar", "cat.scenic": "Manzaralar", "cat.gems": "Gizli Cevherler", "cat.petrol": "Benzin İstasyonları", "cat.pharmacies": "Eczaneler", "cat.gyms": "Spor Salonları", "cat.fastfood": "Fast Food", "cat.coworking": "Ortak Çalışma", "cat.aria": "Yer kategorileri",
   "detail.gem": "gizli cevher", "detail.open": "şu an açık", "detail.closed": "kapalı", "detail.route": "Beni oraya götür", "detail.maps": "Haritalar'da aç", "detail.demo": "echo-üretimi demo yer — gerçek şehir için bir Google Haritalar anahtarı ekle", "detail.close": "Ayrıntıları kapat",
   "field.growing": "şehir büyüyor…", "field.demo": "demo şehir · API anahtarı yok", "field.aria": "Keşif alanı",
+  "presence.nearby": "yakında {n} başka kaşif var",
   "map.hint": "yakınlaştırmak için kaydır / sıkıştır · taşımak için sürükle", "map.zoomin": "Yakınlaştır", "map.zoomout": "Uzaklaştır", "map.reset": "Görünümü sıfırla", "map.aria": "Yakındaki yerlerin sinir haritası — yakınlaştır, sürükle", "map.zoomgroup": "Yakınlaştırma kontrolleri",
   "entry.kicker": "echo earth", "entry.locating": "Dünya seni buluyor…", "entry.presence": "{city} yakınında bir varlık", "entry.presence.generic": "yüzeyde bir varlık", "entry.mood": "gezegen bugün {mood}", "entry.survival": "tasarruf — sessizce giriliyor", "entry.sync": "eşzamanlanıyor. benimle düş…",
 };
