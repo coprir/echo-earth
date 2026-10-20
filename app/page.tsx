@@ -7,13 +7,15 @@
  */
 
 import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEnvironment } from "@/engine/useEnvironment";
 import { useAdaptiveMind, watchTravelMode } from "@/engine/useAdaptiveMind";
+import { useSupabaseSession } from "@/engine/useSupabaseSession";
+import { usePresence } from "@/engine/usePresence";
 import { ambient } from "@/engine/audio";
 import { CategoryId, Place } from "@/lib/places";
-import { rankCategories, filterPlaces } from "@/lib/recommend";
+import { rankCategories, buildValidCandidates } from "@/lib/recommend";
 import { useLang, useT, dirOf } from "@/lib/i18n";
 import PlanetaryEntry from "@/components/planet/PlanetaryEntry";
 import NeuralMap from "@/components/map/NeuralMap";
@@ -24,9 +26,11 @@ import PlaceDetail from "@/components/discovery/PlaceDetail";
 import VitalsHUD from "@/components/hud/VitalsHUD";
 import Consciousness from "@/components/organism/Consciousness";
 import AtmospherePicker from "@/components/discovery/AtmospherePicker";
+import PresenceField from "@/components/organism/PresenceField";
 import Concierge from "@/components/concierge/Concierge";
 import About from "@/components/about/About";
 import LanguageGate from "@/components/i18n/LanguageGate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const ParticleField = dynamic(() => import("@/components/organism/ParticleField"), { ssr: false });
 
@@ -46,6 +50,18 @@ export default function EchoEarth() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   const [langChosen, setLangChosen] = useState(false);
+
+  // bootstraps a Supabase anonymous session when Supabase is configured;
+  // a complete no-op otherwise (demo mode is unaffected either way)
+  useSupabaseSession();
+
+  // realtime explorer presence — ambient, privacy-preserving, see
+  // docs/realtime-presence.md. Only joins once the organism is "awake"
+  // (matches the existing pattern of deferring non-critical subsystems
+  // until after the planetary intro); no-ops entirely without Supabase
+  // configured or without an active session, same fail-open design as
+  // every other optional subsystem in this app.
+  const presence = usePresence({ enabled: awake, lat: env.lat, lon: env.lon, city: env.city, country: env.country });
 
   useEffect(() => {
     setMounted(true);
@@ -137,7 +153,18 @@ export default function EchoEarth() {
     [mind.mode, mind.travel, theme.phase, env.weather.kind, mind.affinities]
   );
 
-  const visiblePlaces = useMemo(() => filterPlaces(places, mind.mode), [places, mind.mode]);
+  const visiblePlaces = useMemo(
+    () =>
+      buildValidCandidates(places, {
+        mode: mind.mode,
+        travel: mind.travel,
+        phase: theme.phase,
+        weather: env.weather.kind,
+        favorites: mind.favorites(),
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [places, mind.mode, mind.travel, theme.phase, env.weather.kind, mind.affinities]
+  );
 
   const pickCategory = useCallback((id: CategoryId) => {
     setCategory(id);
@@ -167,67 +194,91 @@ export default function EchoEarth() {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden">
-      {!langChosen && <LanguageGate onDone={() => setLangChosen(true)} />}
-      {langChosen && !awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
+    // reducedMotion="user" makes every framer-motion component site-wide
+    // (modals, dropdowns, the narrator, the planetary entry) respect the OS
+    // prefers-reduced-motion setting automatically — previously only the
+    // large WebGL/particle/motion-intensity systems checked
+    // env.prefersReducedMotion explicitly; this covers everything else
+    // (Concierge, AtmospherePicker, LangSwitcher, HudMenu, PlaceDetail,
+    // LanguageGate, Consciousness) without threading the flag through each.
+    <MotionConfig reducedMotion="user">
+      <main className="relative min-h-dvh overflow-hidden">
+        {!langChosen && <LanguageGate onDone={() => setLangChosen(true)} />}
+        {langChosen && !awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
 
-      <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
+        <ErrorBoundary>
+          <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
+        </ErrorBoundary>
 
-      <VitalsHUD env={env} theme={theme} travel={mind.travel} onAbout={() => setAboutOpen(true)} />
+        <VitalsHUD env={env} theme={theme} travel={mind.travel} onAbout={() => setAboutOpen(true)} />
 
-      <About open={aboutOpen} onClose={closeAbout} />
+        <About open={aboutOpen} onClose={closeAbout} />
 
-      {/* the City Consciousness — the organism's living voice */}
-      {awake && <Consciousness env={env} category={category} placeCount={visiblePlaces.length} />}
+        {/* the City Consciousness — the organism's living voice */}
+        {awake && <Consciousness env={env} />}
 
-      {/* Digital Weather System — synthetic atmosphere selector */}
-      {awake && <AtmospherePicker />}
+        {/* Digital Weather System — synthetic atmosphere selector */}
+        {awake && <AtmospherePicker />}
 
-      {/* AI City Concierge — energy intent → personalized movement journey */}
-      {awake && <Concierge lat={env.lat} lon={env.lon} city={env.city} onFocusPlace={focusPlace} autoOpen={introDone} />}
+        {/* AI City Concierge — energy intent → personalized movement journey */}
+        {awake && (
+          <ErrorBoundary>
+            <Concierge lat={env.lat} lon={env.lon} city={env.city} env={env} theme={theme} onFocusPlace={focusPlace} autoOpen={introDone} />
+          </ErrorBoundary>
+        )}
 
-      {/* the discovery field */}
-      <motion.section
-        className="relative z-10 flex flex-col h-dvh pt-24"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: awake ? 1 : 0 }}
-        transition={{ duration: 1.6, ease: "easeOut" }}
-        aria-label={t("field.aria")}
-      >
-        {/* neural city — min-h-0 lets this flex child shrink so the controls below
-            always stay on-screen (without it the map's content pushes them past
-            the viewport, where overflow-hidden clips them on shorter windows) */}
-        <div className="relative flex-1 min-h-0 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
-          {env.lat != null && env.lon != null && <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />}
-          <NeuralMap
-            places={visiblePlaces}
-            selectedId={selected?.id ?? null}
-            onSelect={pickPlace}
-            motionIntensity={theme.motionIntensity}
-            onZoom={(z) => setMapZoom(Math.round(z * 10) / 10)}
-          />
-          {visiblePlaces.length === 0 && (
-            <div className="absolute inset-0 grid place-items-center pointer-events-none">
-              <p className="text-xs tracking-[0.3em] uppercase animate-pulse" style={{ color: "var(--ee-text-dim)" }}>
-                {t("field.growing")}
+        {/* the discovery field */}
+        <motion.section
+          className="relative z-10 flex flex-col h-dvh pt-24"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: awake ? 1 : 0 }}
+          transition={{ duration: 1.6, ease: "easeOut" }}
+          aria-label={t("field.aria")}
+        >
+          {/* neural city — min-h-0 lets this flex child shrink so the controls below
+              always stay on-screen (without it the map's content pushes them past
+              the viewport, where overflow-hidden clips them on shorter windows) */}
+          <div className="relative flex-1 min-h-0 mx-2 my-3 ee-breathe" style={{ animationDuration: "calc(var(--ee-breath) * 2)" }}>
+            {env.lat != null && env.lon != null && (
+              <ErrorBoundary>
+                <LivingMap lat={env.lat} lon={env.lon} theme={theme} zoom={mapZoom} />
+              </ErrorBoundary>
+            )}
+            <NeuralMap
+              places={visiblePlaces}
+              selectedId={selected?.id ?? null}
+              onSelect={pickPlace}
+              motionIntensity={theme.motionIntensity}
+              onZoom={(z) => setMapZoom(Math.round(z * 10) / 10)}
+            />
+            <PresenceField
+              othersCount={presence.othersCount}
+              connected={presence.status === "connected"}
+              reducedMotion={env.prefersReducedMotion}
+            />
+            {visiblePlaces.length === 0 && (
+              <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                <p className="text-xs tracking-[0.3em] uppercase animate-pulse" style={{ color: "var(--ee-text-dim)" }}>
+                  {t("field.growing")}
+                </p>
+              </div>
+            )}
+            {dataMode === "echo" && (
+              <p className="absolute bottom-1 right-3 text-[9px] tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
+                {t("field.demo")}
               </p>
-            </div>
-          )}
-          {dataMode === "echo" && (
-            <p className="absolute bottom-1 right-3 text-[9px] tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
-              {t("field.demo")}
-            </p>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* controls — shrink-0 so the row keeps its full height and is never clipped */}
-        <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
-          <MoodModes active={mind.mode} onPick={(m) => useAdaptiveMind.getState().setMode(m)} />
-          <CategoryOrbs categories={rankedCategories} active={category} onPick={pickCategory} />
-        </div>
-      </motion.section>
+          {/* controls — shrink-0 so the row keeps its full height and is never clipped */}
+          <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
+            <MoodModes active={mind.mode} onPick={(m) => useAdaptiveMind.getState().setMode(m)} />
+            <CategoryOrbs categories={rankedCategories} active={category} onPick={pickCategory} />
+          </div>
+        </motion.section>
 
-      <PlaceDetail place={selected} onClose={() => setSelected(null)} />
-    </main>
+        <PlaceDetail place={selected} onClose={() => setSelected(null)} />
+      </main>
+    </MotionConfig>
   );
 }

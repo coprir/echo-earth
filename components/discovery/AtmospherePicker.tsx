@@ -14,12 +14,14 @@ import { useState } from "react";
 import { ATMOSPHERES } from "@/engine/environment";
 import { useAdaptiveMind } from "@/engine/useAdaptiveMind";
 import { useT } from "@/lib/i18n";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 export default function AtmospherePicker() {
   const atmosphere = useAdaptiveMind((s) => s.atmosphere);
   const setAtmosphere = useAdaptiveMind((s) => s.setAtmosphere);
   const { t } = useT();
   const [open, setOpen] = useState(false);
+  useEscapeToClose(open, () => setOpen(false));
 
   return (
     <div className="fixed left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-start gap-2">
@@ -43,7 +45,7 @@ export default function AtmospherePicker() {
                       setOpen(false);
                     }}
                     aria-pressed={active}
-                    className="group flex w-full flex-col items-start rounded-xl px-3 py-1.5 text-left transition-colors"
+                    className="group flex w-full flex-col items-start rounded-xl px-3 py-1.5 text-start transition-colors"
                     style={{ background: active ? "var(--ee-glow)" : "transparent" }}
                   >
                     <span className="text-sm" style={{ color: active ? "var(--ee-text)" : "var(--ee-text-dim)" }}>

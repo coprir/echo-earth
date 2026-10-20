@@ -172,7 +172,6 @@ export function resolveTheme(env: EnvSignals, atmosphere: Atmosphere = "auto"): 
   const acc = drift(mood.accentHue, seed + 0.31, tick, synthetic ? 30 : 20);
 
   const survival = env.batterySaver || (env.batteryLevel !== null && env.batteryLevel < 0.15);
-  const dark = survival ? true : mood.light ? false : true;
   // "light" moods still run on deep canvases at ECHO EARTH — light means luminous, not white.
   const lum = mood.light && !survival;
 

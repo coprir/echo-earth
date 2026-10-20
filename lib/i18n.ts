@@ -61,7 +61,14 @@ export function langFromCountry(country: string | null | undefined, city?: strin
 }
 
 export function langFromNavigator(): Lang | null {
-  if (typeof navigator === "undefined") return null;
+  // guard on `window`, not `navigator`: Node 18+ ships a built-in global
+  // `navigator` (its own experimental Navigator API, `navigator.language`
+  // defaults to the OS locale, e.g. "en-US") — `typeof navigator ===
+  // "undefined"` is no longer a reliable SSR check and would silently read
+  // the server's own locale instead of returning null. `window` genuinely
+  // doesn't exist in Node, matching the guard already used for this same
+  // purpose elsewhere (engine/useEnvironment.ts's detectDevice).
+  if (typeof window === "undefined") return null;
   const two = (navigator.language || "en").slice(0, 2).toLowerCase();
   return (LANGS.find((l) => l.code === two)?.code as Lang) ?? null;
 }
@@ -73,6 +80,10 @@ export function langFromNavigator(): Lang | null {
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  // language gate (first screen, before any language is chosen — keyed off
+  // the auto-detected suggestion, same mechanism that highlights it)
+  "gate.aria": "Choose your language",
+  "gate.footer": "you can change this anytime",
   // HUD
   "hud.locating": "locating…",
   "hud.mood": "mood",
@@ -126,6 +137,7 @@ const en: Dict = {
   "con.tourist": "explore like a tourist",
   "con.local": "live like a local",
   "con.loading": "tracing a route through {city}…",
+  "con.aiEnhanced": "✦ AI-refined",
   "con.regen": "regenerate",
   "con.change": "change energy",
   "con.close": "Close concierge",
@@ -245,6 +257,8 @@ const en: Dict = {
   "field.growing": "growing the city…",
   "field.demo": "demo city · no API key",
   "field.aria": "Discovery field",
+  // realtime explorer presence — see docs/realtime-presence.md
+  "presence.nearby": "{n} other explorers nearby",
   "map.hint": "scroll / pinch to zoom · drag to pan",
   "map.zoomin": "Zoom in",
   "map.zoomout": "Zoom out",
@@ -262,6 +276,7 @@ const en: Dict = {
 };
 
 const fr: Dict = {
+  "gate.aria": "Choisissez votre langue", "gate.footer": "vous pouvez changer cela à tout moment",
   "hud.locating": "localisation…", "hud.mood": "humeur", "net.fast": "réseau rapide", "net.slow": "réseau lent",
   "travel.walking": "à pied", "travel.driving": "en voiture", "hud.about": "Qu'est-ce qu'Echo Earth ?",
   "hud.sound.on": "Activer le son ambiant", "hud.sound.off": "Couper le son", "hud.lang": "Langue", "hud.senses": "Ce que perçoit l'organisme",
@@ -277,7 +292,7 @@ const fr: Dict = {
   "about.s5.h": "elle se souvient de vous", "about.s5.b": "Plus vous explorez, plus elle apprend vos goûts — et devient plus personnelle à chaque retour.",
   "about.cta": "commencer l'exploration", "about.close": "Fermer",
   "con.kicker": "echo earth · concierge", "con.question": "quelle énergie cherchez-vous ?",
-  "con.tourist": "explorer en touriste", "con.local": "vivre en habitant", "con.loading": "je trace un itinéraire à travers {city}…",
+  "con.tourist": "explorer en touriste", "con.local": "vivre en habitant", "con.loading": "je trace un itinéraire à travers {city}…", "con.aiEnhanced": "✦ affiné par l'IA",
   "con.regen": "régénérer", "con.change": "changer d'énergie", "con.close": "Fermer le concierge", "con.open": "Ouvrir le concierge IA", "con.title": "Concierge urbain",
   "con.whisper": "voici votre itinéraire dans {city} — {n} étapes, à partir de {lead}. suivez-moi.", "con.empty": "la ville est calme ici — essayez une autre énergie.", "con.style": "Style d'exploration",
   "energy.calm.label": "Calme", "energy.calm.q": "là où la ville ralentit",
@@ -314,11 +329,13 @@ const fr: Dict = {
   "cat.cafes": "Cafés", "cat.restaurants": "Restaurants", "cat.cocktails": "Bars à Cocktails", "cat.taverns": "Tavernes", "cat.clubs": "Clubs", "cat.hotels": "Hôtels", "cat.beaches": "Plages", "cat.scenic": "Panoramas", "cat.gems": "Trésors Cachés", "cat.petrol": "Stations", "cat.pharmacies": "Pharmacies", "cat.gyms": "Salles de Sport", "cat.fastfood": "Restauration Rapide", "cat.coworking": "Coworking", "cat.aria": "Catégories de lieux",
   "detail.gem": "trésor caché", "detail.open": "ouvert", "detail.closed": "fermé", "detail.route": "M'y emmener", "detail.maps": "Ouvrir dans Maps", "detail.demo": "lieu de démonstration — ajoutez une clé Google Maps pour la vraie ville", "detail.close": "Fermer les détails",
   "field.growing": "la ville pousse…", "field.demo": "ville démo · sans clé API", "field.aria": "Champ de découverte",
+  "presence.nearby": "{n} autres explorateurs à proximité",
   "map.hint": "molette / pincer pour zoomer · glisser pour déplacer", "map.zoomin": "Zoomer", "map.zoomout": "Dézoomer", "map.reset": "Réinitialiser la vue", "map.aria": "Carte neuronale des lieux proches — zoomer, glisser", "map.zoomgroup": "Commandes de zoom",
   "entry.kicker": "echo earth", "entry.locating": "la Terre vous localise…", "entry.presence": "une présence près de {city}", "entry.presence.generic": "une présence à la surface", "entry.mood": "la planète est {mood} aujourd'hui", "entry.survival": "économie — entrée discrète", "entry.sync": "synchronisation. tombez avec moi…",
 };
 
 const es: Dict = {
+  "gate.aria": "Elige tu idioma", "gate.footer": "puedes cambiar esto en cualquier momento",
   "hud.locating": "localizando…", "hud.mood": "ánimo", "net.fast": "red rápida", "net.slow": "red lenta",
   "travel.walking": "caminando", "travel.driving": "conduciendo", "hud.about": "¿Qué es Echo Earth?",
   "hud.sound.on": "Activar sonido ambiente", "hud.sound.off": "Silenciar sonido", "hud.lang": "Idioma", "hud.senses": "Lo que percibe el organismo",
@@ -334,7 +351,7 @@ const es: Dict = {
   "about.s5.h": "te recuerda", "about.s5.b": "Cuanto más exploras, más aprende tu gusto — y se vuelve más personal cada vez que vuelves.",
   "about.cta": "empezar a explorar", "about.close": "Cerrar",
   "con.kicker": "echo earth · conserje", "con.question": "¿qué energía buscas?",
-  "con.tourist": "explorar como turista", "con.local": "vivir como local", "con.loading": "trazando una ruta por {city}…",
+  "con.tourist": "explorar como turista", "con.local": "vivir como local", "con.loading": "trazando una ruta por {city}…", "con.aiEnhanced": "✦ refinado por IA",
   "con.regen": "regenerar", "con.change": "cambiar energía", "con.close": "Cerrar conserje", "con.open": "Abrir el conserje IA", "con.title": "Conserje urbano",
   "con.whisper": "aquí está tu ruta por {city} — {n} paradas, comenzando en {lead}. sígueme.", "con.empty": "la ciudad está tranquila aquí — prueba otra energía.", "con.style": "Estilo de exploración",
   "energy.calm.label": "Calma", "energy.calm.q": "donde la ciudad baja el ritmo",
@@ -371,11 +388,13 @@ const es: Dict = {
   "cat.cafes": "Cafés", "cat.restaurants": "Restaurantes", "cat.cocktails": "Coctelerías", "cat.taverns": "Tabernas", "cat.clubs": "Clubes", "cat.hotels": "Hoteles", "cat.beaches": "Playas", "cat.scenic": "Miradores", "cat.gems": "Tesoros Ocultos", "cat.petrol": "Gasolineras", "cat.pharmacies": "Farmacias", "cat.gyms": "Gimnasios", "cat.fastfood": "Comida Rápida", "cat.coworking": "Coworking", "cat.aria": "Categorías de lugares",
   "detail.gem": "tesoro oculto", "detail.open": "abierto ahora", "detail.closed": "cerrado", "detail.route": "Llévame allí", "detail.maps": "Abrir en Maps", "detail.demo": "lugar de demostración — añade una clave de Google Maps para la ciudad real", "detail.close": "Cerrar detalles",
   "field.growing": "creciendo la ciudad…", "field.demo": "ciudad demo · sin clave API", "field.aria": "Campo de descubrimiento",
+  "presence.nearby": "{n} otros exploradores cerca",
   "map.hint": "rueda / pellizcar para zoom · arrastrar para mover", "map.zoomin": "Acercar", "map.zoomout": "Alejar", "map.reset": "Restablecer vista", "map.aria": "Mapa neuronal de lugares cercanos — zoom, arrastrar", "map.zoomgroup": "Controles de zoom",
   "entry.kicker": "echo earth", "entry.locating": "la Tierra te está localizando…", "entry.presence": "una presencia cerca de {city}", "entry.presence.generic": "una presencia en la superficie", "entry.mood": "el planeta está {mood} hoy", "entry.survival": "ahorrando — entrando en silencio", "entry.sync": "sincronizando. cae conmigo…",
 };
 
 const de: Dict = {
+  "gate.aria": "Sprache wählen", "gate.footer": "du kannst das jederzeit ändern",
   "hud.locating": "ortung…", "hud.mood": "stimmung", "net.fast": "netz schnell", "net.slow": "netz langsam",
   "travel.walking": "zu Fuß", "travel.driving": "fahrend", "hud.about": "Was ist Echo Earth?",
   "hud.sound.on": "Umgebungston aktivieren", "hud.sound.off": "Ton stummschalten", "hud.lang": "Sprache", "hud.senses": "Was der Organismus wahrnimmt",
@@ -391,7 +410,7 @@ const de: Dict = {
   "about.s5.h": "es erinnert sich an dich", "about.s5.b": "Je mehr du erkundest, desto mehr lernt es deinen Geschmack — und wird bei jedem Besuch persönlicher.",
   "about.cta": "erkundung beginnen", "about.close": "Schließen",
   "con.kicker": "echo earth · concierge", "con.question": "welche Energie suchst du?",
-  "con.tourist": "wie ein Tourist erkunden", "con.local": "wie ein Einheimischer leben", "con.loading": "ich zeichne eine Route durch {city}…",
+  "con.tourist": "wie ein Tourist erkunden", "con.local": "wie ein Einheimischer leben", "con.loading": "ich zeichne eine Route durch {city}…", "con.aiEnhanced": "✦ von KI verfeinert",
   "con.regen": "neu erzeugen", "con.change": "Energie ändern", "con.close": "Concierge schließen", "con.open": "KI-Concierge öffnen", "con.title": "Stadt-Concierge",
   "con.whisper": "hier ist deine Route durch {city} — {n} Stopps, Beginn bei {lead}. folge mir.", "con.empty": "die Stadt ist hier still — probier eine andere Energie.", "con.style": "Erkundungsstil",
   "energy.calm.label": "Ruhig", "energy.calm.q": "wo die Stadt langsamer wird",
@@ -428,11 +447,13 @@ const de: Dict = {
   "cat.cafes": "Cafés", "cat.restaurants": "Restaurants", "cat.cocktails": "Cocktailbars", "cat.taverns": "Tavernen", "cat.clubs": "Clubs", "cat.hotels": "Hotels", "cat.beaches": "Strände", "cat.scenic": "Aussichten", "cat.gems": "Geheimtipps", "cat.petrol": "Tankstellen", "cat.pharmacies": "Apotheken", "cat.gyms": "Fitnessstudios", "cat.fastfood": "Fast Food", "cat.coworking": "Coworking", "cat.aria": "Ortskategorien",
   "detail.gem": "Geheimtipp", "detail.open": "jetzt geöffnet", "detail.closed": "geschlossen", "detail.route": "Bring mich hin", "detail.maps": "In Maps öffnen", "detail.demo": "Demo-Ort — füge einen Google-Maps-Schlüssel hinzu für die echte Stadt", "detail.close": "Details schließen",
   "field.growing": "die Stadt wächst…", "field.demo": "Demo-Stadt · kein API-Schlüssel", "field.aria": "Entdeckungsfeld",
+  "presence.nearby": "{n} andere Entdecker in der Nähe",
   "map.hint": "scrollen / kneifen zum Zoomen · ziehen zum Bewegen", "map.zoomin": "Vergrößern", "map.zoomout": "Verkleinern", "map.reset": "Ansicht zurücksetzen", "map.aria": "Neuronale Karte naher Orte — zoomen, ziehen", "map.zoomgroup": "Zoom-Steuerung",
   "entry.kicker": "echo earth", "entry.locating": "die Erde ortet dich…", "entry.presence": "eine Präsenz nahe {city}", "entry.presence.generic": "eine Präsenz an der Oberfläche", "entry.mood": "der Planet ist heute {mood}", "entry.survival": "sparmodus — leiser Eintritt", "entry.sync": "synchronisiere. fall mit mir…",
 };
 
 const ru: Dict = {
+  "gate.aria": "Выберите язык", "gate.footer": "вы можете изменить это в любое время",
   "hud.locating": "поиск…", "hud.mood": "настроение", "net.fast": "сеть быстрая", "net.slow": "сеть медленная",
   "travel.walking": "пешком", "travel.driving": "за рулём", "hud.about": "Что такое Echo Earth?",
   "hud.sound.on": "Включить фоновый звук", "hud.sound.off": "Выключить звук", "hud.lang": "Язык", "hud.senses": "Что чувствует организм",
@@ -448,7 +469,7 @@ const ru: Dict = {
   "about.s5.h": "она помнит вас", "about.s5.b": "Чем больше вы исследуете, тем лучше она узнаёт ваш вкус — и становится личнее с каждым возвращением.",
   "about.cta": "начать исследование", "about.close": "Закрыть",
   "con.kicker": "echo earth · консьерж", "con.question": "какую энергию вы ищете?",
-  "con.tourist": "исследовать как турист", "con.local": "жить как местный", "con.loading": "прокладываю маршрут по {city}…",
+  "con.tourist": "исследовать как турист", "con.local": "жить как местный", "con.loading": "прокладываю маршрут по {city}…", "con.aiEnhanced": "✦ уточнено ИИ",
   "con.regen": "обновить", "con.change": "сменить энергию", "con.close": "Закрыть консьержа", "con.open": "Открыть ИИ-консьержа", "con.title": "Городской консьерж",
   "con.whisper": "вот ваш маршрут по {city} — {n} остановок, начиная с {lead}. следуйте за мной.", "con.empty": "здесь город тих — попробуйте другую энергию.", "con.style": "Стиль исследования",
   "energy.calm.label": "Спокойствие", "energy.calm.q": "там, где город замедляется",
@@ -485,11 +506,13 @@ const ru: Dict = {
   "cat.cafes": "Кафе", "cat.restaurants": "Рестораны", "cat.cocktails": "Коктейль-бары", "cat.taverns": "Таверны", "cat.clubs": "Клубы", "cat.hotels": "Отели", "cat.beaches": "Пляжи", "cat.scenic": "Виды", "cat.gems": "Скрытые Жемчужины", "cat.petrol": "Заправки", "cat.pharmacies": "Аптеки", "cat.gyms": "Спортзалы", "cat.fastfood": "Фастфуд", "cat.coworking": "Коворкинг", "cat.aria": "Категории мест",
   "detail.gem": "скрытая жемчужина", "detail.open": "открыто сейчас", "detail.closed": "закрыто", "detail.route": "Проложить маршрут", "detail.maps": "Открыть в Maps", "detail.demo": "демо-место — добавьте ключ Google Maps для настоящего города", "detail.close": "Закрыть детали",
   "field.growing": "город прорастает…", "field.demo": "демо-город · без ключа API", "field.aria": "Поле открытий",
+  "presence.nearby": "{n} других исследователей рядом",
   "map.hint": "колесо / щипок для зума · перетаскивание", "map.zoomin": "Приблизить", "map.zoomout": "Отдалить", "map.reset": "Сбросить вид", "map.aria": "Нейронная карта мест рядом — зум, перетаскивание", "map.zoomgroup": "Управление зумом",
   "entry.kicker": "echo earth", "entry.locating": "Земля находит вас…", "entry.presence": "присутствие рядом с {city}", "entry.presence.generic": "присутствие на поверхности", "entry.mood": "сегодня планета — {mood}", "entry.survival": "экономия — тихий вход", "entry.sync": "синхронизация. падайте со мной…",
 };
 
 const el: Dict = {
+  "gate.aria": "Επιλέξτε γλώσσα", "gate.footer": "μπορείτε να το αλλάξετε οποτεδήποτε",
   "hud.locating": "εντοπισμός…", "hud.mood": "διάθεση", "net.fast": "δίκτυο γρήγορο", "net.slow": "δίκτυο αργό",
   "travel.walking": "με τα πόδια", "travel.driving": "οδηγώντας", "hud.about": "Τι είναι το Echo Earth;",
   "hud.sound.on": "Ενεργοποίηση ήχου", "hud.sound.off": "Σίγαση ήχου", "hud.lang": "Γλώσσα", "hud.senses": "Τι αντιλαμβάνεται ο οργανισμός",
@@ -505,7 +528,7 @@ const el: Dict = {
   "about.s5.h": "σε θυμάται", "about.s5.b": "Όσο εξερευνάς, τόσο μαθαίνει το γούστο σου — και γίνεται πιο προσωπικό κάθε φορά που επιστρέφεις.",
   "about.cta": "ξεκίνα την εξερεύνηση", "about.close": "Κλείσιμο",
   "con.kicker": "echo earth · κονσιέρζ", "con.question": "τι ενέργεια ψάχνεις;",
-  "con.tourist": "εξερεύνησε ως τουρίστας", "con.local": "ζήσε ως ντόπιος", "con.loading": "χαράζω διαδρομή μέσα από {city}…",
+  "con.tourist": "εξερεύνησε ως τουρίστας", "con.local": "ζήσε ως ντόπιος", "con.loading": "χαράζω διαδρομή μέσα από {city}…", "con.aiEnhanced": "✦ βελτιωμένο από AI",
   "con.regen": "αναδημιουργία", "con.change": "αλλαγή ενέργειας", "con.close": "Κλείσιμο κονσιέρζ", "con.open": "Άνοιγμα κονσιέρζ AI", "con.title": "Κονσιέρζ πόλης",
   "con.whisper": "ορίστε η διαδρομή σου στην {city} — {n} στάσεις, ξεκινώντας από {lead}. ακολούθησέ με.", "con.empty": "η πόλη είναι ήσυχη εδώ — δοκίμασε άλλη ενέργεια.", "con.style": "Στυλ εξερεύνησης",
   "energy.calm.label": "Ηρεμία", "energy.calm.q": "εκεί που η πόλη επιβραδύνει",
@@ -542,11 +565,13 @@ const el: Dict = {
   "cat.cafes": "Καφέ", "cat.restaurants": "Εστιατόρια", "cat.cocktails": "Μπαρ Κοκτέιλ", "cat.taverns": "Ταβέρνες", "cat.clubs": "Κλαμπ", "cat.hotels": "Ξενοδοχεία", "cat.beaches": "Παραλίες", "cat.scenic": "Θέες", "cat.gems": "Κρυμμένοι Θησαυροί", "cat.petrol": "Βενζινάδικα", "cat.pharmacies": "Φαρμακεία", "cat.gyms": "Γυμναστήρια", "cat.fastfood": "Φαστ Φουντ", "cat.coworking": "Coworking", "cat.aria": "Κατηγορίες μερών",
   "detail.gem": "κρυμμένος θησαυρός", "detail.open": "ανοιχτό τώρα", "detail.closed": "κλειστό", "detail.route": "Οδήγησέ με εκεί", "detail.maps": "Άνοιγμα στο Maps", "detail.demo": "μέρος επίδειξης — πρόσθεσε κλειδί Google Maps για την αληθινή πόλη", "detail.close": "Κλείσιμο λεπτομερειών",
   "field.growing": "η πόλη μεγαλώνει…", "field.demo": "πόλη επίδειξης · χωρίς κλειδί API", "field.aria": "Πεδίο ανακάλυψης",
+  "presence.nearby": "{n} άλλοι εξερευνητές εδώ κοντά",
   "map.hint": "κύλιση / τσίμπημα για ζουμ · σύρε για μετακίνηση", "map.zoomin": "Μεγέθυνση", "map.zoomout": "Σμίκρυνση", "map.reset": "Επαναφορά προβολής", "map.aria": "Νευρωνικός χάρτης κοντινών μερών — ζουμ, σύρσιμο", "map.zoomgroup": "Χειριστήρια ζουμ",
   "entry.kicker": "echo earth", "entry.locating": "η Γη σε εντοπίζει…", "entry.presence": "μια παρουσία κοντά στην {city}", "entry.presence.generic": "μια παρουσία στην επιφάνεια", "entry.mood": "ο πλανήτης είναι {mood} σήμερα", "entry.survival": "εξοικονόμηση — ήσυχη είσοδος", "entry.sync": "συγχρονισμός. πέσε μαζί μου…",
 };
 
 const ar: Dict = {
+  "gate.aria": "اختر لغتك", "gate.footer": "يمكنك تغيير ذلك في أي وقت",
   "hud.locating": "تحديد الموقع…", "hud.mood": "المزاج", "net.fast": "شبكة سريعة", "net.slow": "شبكة بطيئة",
   "travel.walking": "مشياً", "travel.driving": "بالسيارة", "hud.about": "ما هو Echo Earth؟",
   "hud.sound.on": "تشغيل الصوت المحيط", "hud.sound.off": "كتم الصوت", "hud.lang": "اللغة", "hud.senses": "ما يستشعره الكائن",
@@ -562,7 +587,7 @@ const ar: Dict = {
   "about.s5.h": "يتذكّرك", "about.s5.b": "كلما استكشفت أكثر، تعلّم ذوقك أكثر — ويصبح أكثر خصوصية مع كل عودة.",
   "about.cta": "ابدأ الاستكشاف", "about.close": "إغلاق",
   "con.kicker": "echo earth · كونسيرج", "con.question": "أي طاقة تبحث عنها؟",
-  "con.tourist": "استكشف كسائح", "con.local": "عش كمحلّي", "con.loading": "أرسم مساراً عبر {city}…",
+  "con.tourist": "استكشف كسائح", "con.local": "عش كمحلّي", "con.loading": "أرسم مساراً عبر {city}…", "con.aiEnhanced": "✦ محسَّن بالذكاء الاصطناعي",
   "con.regen": "إعادة توليد", "con.change": "غيّر الطاقة", "con.close": "إغلاق الكونسيرج", "con.open": "افتح كونسيرج الذكاء الاصطناعي", "con.title": "كونسيرج المدينة",
   "con.whisper": "إليك مسارك عبر {city} — {n} محطات، تبدأ من {lead}. اتبعني.", "con.empty": "المدينة هادئة هنا — جرّب طاقة أخرى.", "con.style": "أسلوب الاستكشاف",
   "energy.calm.label": "هدوء", "energy.calm.q": "حيث تتباطأ المدينة",
@@ -599,11 +624,13 @@ const ar: Dict = {
   "cat.cafes": "مقاهٍ", "cat.restaurants": "مطاعم", "cat.cocktails": "بارات كوكتيل", "cat.taverns": "حانات", "cat.clubs": "نوادٍ", "cat.hotels": "فنادق", "cat.beaches": "شواطئ", "cat.scenic": "مناظر", "cat.gems": "كنوز خفية", "cat.petrol": "محطات وقود", "cat.pharmacies": "صيدليات", "cat.gyms": "صالات رياضية", "cat.fastfood": "وجبات سريعة", "cat.coworking": "عمل مشترك", "cat.aria": "فئات الأماكن",
   "detail.gem": "كنز خفي", "detail.open": "مفتوح الآن", "detail.closed": "مغلق", "detail.route": "خذني إلى هناك", "detail.maps": "افتح في الخرائط", "detail.demo": "مكان تجريبي — أضف مفتاح خرائط Google لإظهار المدينة الحقيقية", "detail.close": "إغلاق التفاصيل",
   "field.growing": "المدينة تنمو…", "field.demo": "مدينة تجريبية · بلا مفتاح API", "field.aria": "حقل الاكتشاف",
+  "presence.nearby": "{n} مستكشفين آخرين قريبين",
   "map.hint": "مرّر / اقرص للتكبير · اسحب للتحريك", "map.zoomin": "تكبير", "map.zoomout": "تصغير", "map.reset": "إعادة ضبط العرض", "map.aria": "خريطة عصبية للأماكن القريبة — تكبير، سحب", "map.zoomgroup": "أدوات التكبير",
   "entry.kicker": "echo earth", "entry.locating": "الأرض تحدّد موقعك…", "entry.presence": "حضور قرب {city}", "entry.presence.generic": "حضور على السطح", "entry.mood": "الكوكب اليوم {mood}", "entry.survival": "توفير — دخول هادئ", "entry.sync": "مزامنة. اسقط معي…",
 };
 
 const zh: Dict = {
+  "gate.aria": "选择你的语言", "gate.footer": "你可以随时更改",
   "hud.locating": "定位中…", "hud.mood": "氛围", "net.fast": "网络快", "net.slow": "网络慢",
   "travel.walking": "步行", "travel.driving": "驾车", "hud.about": "什么是 Echo Earth？",
   "hud.sound.on": "开启环境音", "hud.sound.off": "静音", "hud.lang": "语言", "hud.senses": "有机体所感知的",
@@ -619,7 +646,7 @@ const zh: Dict = {
   "about.s5.h": "它记得你", "about.s5.b": "你探索得越多，它越了解你的口味——每次回来都更懂你。",
   "about.cta": "开始探索", "about.close": "关闭",
   "con.kicker": "echo earth · 礼宾", "con.question": "你在寻找怎样的能量？",
-  "con.tourist": "像游客一样探索", "con.local": "像本地人一样生活", "con.loading": "正在穿过 {city} 规划路线…",
+  "con.tourist": "像游客一样探索", "con.local": "像本地人一样生活", "con.loading": "正在穿过 {city} 规划路线…", "con.aiEnhanced": "✦ AI 优化",
   "con.regen": "重新生成", "con.change": "更换能量", "con.close": "关闭礼宾", "con.open": "打开 AI 城市礼宾", "con.title": "城市礼宾",
   "con.whisper": "这是你穿越 {city} 的路线——{n} 站，从 {lead} 开始。跟我来。", "con.empty": "这里的城市很安静——换个能量试试。", "con.style": "探索方式",
   "energy.calm.label": "平静", "energy.calm.q": "城市慢下来的地方",
@@ -656,11 +683,13 @@ const zh: Dict = {
   "cat.cafes": "咖啡馆", "cat.restaurants": "餐厅", "cat.cocktails": "鸡尾酒吧", "cat.taverns": "小酒馆", "cat.clubs": "夜店", "cat.hotels": "酒店", "cat.beaches": "海滩", "cat.scenic": "观景", "cat.gems": "隐藏珍宝", "cat.petrol": "加油站", "cat.pharmacies": "药房", "cat.gyms": "健身房", "cat.fastfood": "快餐", "cat.coworking": "联合办公", "cat.aria": "地点分类",
   "detail.gem": "隐藏珍宝", "detail.open": "营业中", "detail.closed": "已打烊", "detail.route": "带我去那里", "detail.maps": "在地图中打开", "detail.demo": "回声生成的演示地点——添加 Google 地图密钥以呈现真实城市", "detail.close": "关闭详情",
   "field.growing": "城市正在生长…", "field.demo": "演示城市 · 无 API 密钥", "field.aria": "发现场域",
+  "presence.nearby": "附近有 {n} 位探索者",
   "map.hint": "滚动 / 捏合缩放 · 拖动平移", "map.zoomin": "放大", "map.zoomout": "缩小", "map.reset": "重置视图", "map.aria": "附近地点的神经地图——缩放、拖动", "map.zoomgroup": "缩放控制",
   "entry.kicker": "echo earth", "entry.locating": "地球正在定位你…", "entry.presence": "在 {city} 附近的存在", "entry.presence.generic": "地表上的一个存在", "entry.mood": "今天的星球是 {mood}", "entry.survival": "节能——静默进入", "entry.sync": "同步中。与我一同坠落…",
 };
 
 const tr: Dict = {
+  "gate.aria": "Dilinizi seçin", "gate.footer": "bunu her zaman değiştirebilirsin",
   "hud.locating": "konum bulunuyor…", "hud.mood": "ruh hali", "net.fast": "ağ hızlı", "net.slow": "ağ yavaş",
   "travel.walking": "yürüyerek", "travel.driving": "araçla", "hud.about": "Echo Earth nedir?",
   "hud.sound.on": "Ortam sesini aç", "hud.sound.off": "Sesi kapat", "hud.lang": "Dil", "hud.senses": "Organizmanın algıladıkları",
@@ -676,7 +705,7 @@ const tr: Dict = {
   "about.s5.h": "seni hatırlar", "about.s5.b": "Ne kadar keşfedersen, zevkini o kadar öğrenir — her dönüşünde biraz daha kişisel olur.",
   "about.cta": "keşfe başla", "about.close": "Kapat",
   "con.kicker": "echo earth · konsiyerj", "con.question": "nasıl bir enerji arıyorsun?",
-  "con.tourist": "turist gibi keşfet", "con.local": "yerli gibi yaşa", "con.loading": "{city} boyunca bir rota çiziliyor…",
+  "con.tourist": "turist gibi keşfet", "con.local": "yerli gibi yaşa", "con.loading": "{city} boyunca bir rota çiziliyor…", "con.aiEnhanced": "✦ yapay zekâ ile geliştirildi",
   "con.regen": "yeniden oluştur", "con.change": "enerjiyi değiştir", "con.close": "Konsiyerji kapat", "con.open": "Yapay zekâ şehir konsiyerjini aç", "con.title": "Şehir konsiyerji",
   "con.whisper": "işte {city} boyunca rotan — {n} durak, {lead} ile başlıyor. beni takip et.", "con.empty": "burada şehir sessiz — başka bir enerji dene.", "con.style": "Keşif tarzı",
   "energy.calm.label": "Sakin", "energy.calm.q": "şehrin yavaşladığı bir yer",
@@ -713,6 +742,7 @@ const tr: Dict = {
   "cat.cafes": "Kafeler", "cat.restaurants": "Restoranlar", "cat.cocktails": "Kokteyl Barları", "cat.taverns": "Meyhaneler", "cat.clubs": "Kulüpler", "cat.hotels": "Oteller", "cat.beaches": "Plajlar", "cat.scenic": "Manzaralar", "cat.gems": "Gizli Cevherler", "cat.petrol": "Benzin İstasyonları", "cat.pharmacies": "Eczaneler", "cat.gyms": "Spor Salonları", "cat.fastfood": "Fast Food", "cat.coworking": "Ortak Çalışma", "cat.aria": "Yer kategorileri",
   "detail.gem": "gizli cevher", "detail.open": "şu an açık", "detail.closed": "kapalı", "detail.route": "Beni oraya götür", "detail.maps": "Haritalar'da aç", "detail.demo": "echo-üretimi demo yer — gerçek şehir için bir Google Haritalar anahtarı ekle", "detail.close": "Ayrıntıları kapat",
   "field.growing": "şehir büyüyor…", "field.demo": "demo şehir · API anahtarı yok", "field.aria": "Keşif alanı",
+  "presence.nearby": "yakında {n} başka kaşif var",
   "map.hint": "yakınlaştırmak için kaydır / sıkıştır · taşımak için sürükle", "map.zoomin": "Yakınlaştır", "map.zoomout": "Uzaklaştır", "map.reset": "Görünümü sıfırla", "map.aria": "Yakındaki yerlerin sinir haritası — yakınlaştır, sürükle", "map.zoomgroup": "Yakınlaştırma kontrolleri",
   "entry.kicker": "echo earth", "entry.locating": "Dünya seni buluyor…", "entry.presence": "{city} yakınında bir varlık", "entry.presence.generic": "yüzeyde bir varlık", "entry.mood": "gezegen bugün {mood}", "entry.survival": "tasarruf — sessizce giriliyor", "entry.sync": "eşzamanlanıyor. benimle düş…",
 };
@@ -819,6 +849,14 @@ const DICT: Record<Lang, Dict> = { en, ar, fr, zh, es, ru, el, tr, de };
 for (const l of Object.keys(DICT) as Lang[]) {
   Object.assign(DICT[l], NAR[l], EXTRAS[l]);
 }
+
+/**
+ * Read-only access to the full per-language key/value maps, for tooling only
+ * (the i18n completeness checker, its tests). Application code should always
+ * go through `translate`/`useT`, never read this directly — it exists so
+ * translation gaps are checkable and testable, not as a second API surface.
+ */
+export const DICTIONARIES: Readonly<Record<Lang, Dict>> = DICT;
 
 export function translate(lang: Lang, key: string, vars?: Record<string, string | number>): string {
   let s = DICT[lang]?.[key] ?? DICT.en[key] ?? key;

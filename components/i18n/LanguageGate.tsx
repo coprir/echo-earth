@@ -10,7 +10,7 @@
  */
 
 import { motion } from "framer-motion";
-import { LANGS, useLang } from "@/lib/i18n";
+import { LANGS, translate, useLang } from "@/lib/i18n";
 
 export default function LanguageGate({ onDone }: { onDone: () => void }) {
   const lang = useLang((s) => s.lang); // the auto-detected suggestion
@@ -51,7 +51,7 @@ export default function LanguageGate({ onDone }: { onDone: () => void }) {
 
       <motion.div
         role="listbox"
-        aria-label="Choose your language"
+        aria-label={translate(lang, "gate.aria")}
         className="mt-9 grid w-full max-w-md grid-cols-2 gap-2.5 sm:grid-cols-3"
         initial="hidden"
         animate="show"
@@ -82,8 +82,8 @@ export default function LanguageGate({ onDone }: { onDone: () => void }) {
         })}
       </motion.div>
 
-      <p className="mt-7 text-[10px] tracking-wider" style={{ color: "var(--ee-text-dim)" }}>
-        ⌖ you can change this anytime
+      <p className="mt-7 text-[10px] tracking-wider" style={{ color: "var(--ee-text-dim)" }} dir={LANGS.find((l) => l.code === lang)?.dir}>
+        ⌖ {translate(lang, "gate.footer")}
       </p>
     </motion.div>
   );

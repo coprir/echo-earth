@@ -33,17 +33,17 @@ Copy `.env.example` → `.env.local` and add any of:
 | `GOOGLE_MAPS_API_KEY` | Real nearby places via Places API (New) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Mood-styled live map tiles under the neural field |
 | `OPENWEATHER_API_KEY` | Live weather → live atmosphere |
-| `NEXT_PUBLIC_SUPABASE_URL` + keys | Cross-device memory (run `supabase/schema.sql`) |
+| `NEXT_PUBLIC_SUPABASE_URL` + keys | Supabase client wiring (schema tracked in `supabase/migrations/`; cross-device memory itself isn't wired into the app yet — see `IMPLEMENTATION_PLAN.md`) |
 
 ## What's inside
 
 - **Adaptive environment engine** — [engine/environment.ts](engine/environment.ts) resolves 16 signals into a Theme (palette, particle weather, breath period, motion intensity, audio chord) applied as CSS variables.
 - **Sensory system** — [engine/useEnvironment.ts](engine/useEnvironment.ts): geolocation (IP→GPS upgrade), weather, battery, network, device motion, scroll energy, reduced-motion, perf tier.
-- **WebGL atmosphere** — [components/organism/ParticleField.tsx](components/organism/ParticleField.tsx): rain, snow, embers, fireflies, frost, dust — density scaled to your hardware.
+- **WebGL atmosphere** — [components/organism/ParticleField.tsx](components/organism/ParticleField.tsx): rain, snow, embers, fireflies, frost, dust.
 - **Neural city map** — [components/map/NeuralMap.tsx](components/map/NeuralMap.tsx): places as breathing neurons connected by firing filaments.
 - **Adaptive mind** — [engine/useAdaptiveMind.ts](engine/useAdaptiveMind.ts): learns your taste, detects walking vs driving, re-ranks categories.
 - **Mood lenses** — Late Night · Rainy Day · Cheap Eats · Luxury · Hidden Gems.
 - **Generative ambient audio** — [engine/audio.ts](engine/audio.ts): a synth chord per mood that responds to your touch (opt-in, ◎ button).
 - **Survival mode** — battery < 15 % or save-data collapses the organism to a minimal, fast UI.
 
-Full design document: [ARCHITECTURE.md](ARCHITECTURE.md) · Database: [supabase/schema.sql](supabase/schema.sql)
+Full design document: [ARCHITECTURE.md](ARCHITECTURE.md) · Database schema: [supabase/migrations/](supabase/migrations/) · Roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)

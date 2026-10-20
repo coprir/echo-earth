@@ -7,10 +7,12 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useT } from "@/lib/i18n";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 export default function About({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useT();
   const sections = ["s1", "s2", "s3", "s4", "s5"];
+  useEscapeToClose(open, onClose);
 
   return (
     <AnimatePresence>

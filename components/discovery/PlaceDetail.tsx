@@ -9,9 +9,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { Place } from "@/lib/places";
 import { categoryById } from "@/lib/places";
 import { useT } from "@/lib/i18n";
+import { useEscapeToClose } from "@/engine/useEscapeToClose";
 
 export default function PlaceDetail({ place, onClose }: { place: Place | null; onClose: () => void }) {
   const { t } = useT();
+  useEscapeToClose(place !== null, onClose);
   return (
     <AnimatePresence>
       {place && (
@@ -28,7 +30,7 @@ export default function PlaceDetail({ place, onClose }: { place: Place | null; o
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: `hsl(${categoryById(place.category).hue}, 75%, 70%)` }}>
                 {t(`cat.${place.category}`)}
-                {place.isGem && <span className="ml-2 text-yellow-200/90">✦ {t("detail.gem")}</span>}
+                {place.isGem && <span className="ms-2 text-yellow-200/90">✦ {t("detail.gem")}</span>}
               </p>
               <h3 className="mt-1 text-lg font-medium ee-glow-text">{place.name}</h3>
               <p className="mt-0.5 text-xs" style={{ color: "var(--ee-text-dim)" }}>
@@ -65,7 +67,7 @@ export default function PlaceDetail({ place, onClose }: { place: Place | null; o
               {t("detail.route")}
             </a>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.source === "google" ? place.id : ""}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.source === "google" ? encodeURIComponent(place.id) : ""}`}
               target="_blank"
               rel="noreferrer"
               className="px-4 grid place-items-center text-sm rounded-xl"
