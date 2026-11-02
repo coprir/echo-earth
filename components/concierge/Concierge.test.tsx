@@ -38,7 +38,8 @@ function theme(overrides: Partial<Theme> = {}): Theme {
     season: "winter",
     palette: {
       bg: "#000", bgDeep: "#000", surface: "#111", glow: "#222",
-      accent: "#fff", accent2: "#eee", text: "#fff", textDim: "#aaa", line: "#333",
+      accent: "#fff", accentSolid: "#fff", onAccent: "#000",
+      accent2: "#eee", text: "#fff", textDim: "#aaa", line: "#333",
     },
     particles: "none",
     particleDensity: 0,

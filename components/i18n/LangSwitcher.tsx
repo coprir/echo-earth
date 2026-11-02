@@ -24,7 +24,7 @@ export default function LangSwitcher() {
         onClick={() => setOpen((o) => !o)}
         aria-label={t("hud.lang")}
         aria-expanded={open}
-        className="ee-glass !rounded-full w-8 h-8 grid place-items-center text-xs"
+        className="ee-tap ee-glass !rounded-full w-8 h-8 grid place-items-center text-xs"
         style={{ color: "var(--ee-text-dim)" }}
       >
         ⌖

@@ -40,7 +40,7 @@ export default function PlaceDetail({ place, onClose }: { place: Place | null; o
             <button
               onClick={onClose}
               aria-label={t("detail.close")}
-              className="rounded-full w-7 h-7 grid place-items-center text-xs"
+              className="ee-tap rounded-full w-7 h-7 grid place-items-center text-xs"
               style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}
             >
               ✕
@@ -62,7 +62,7 @@ export default function PlaceDetail({ place, onClose }: { place: Place | null; o
               target="_blank"
               rel="noreferrer"
               className="flex-1 text-center text-sm py-2.5 rounded-xl font-medium transition-transform active:scale-95"
-              style={{ background: "var(--ee-accent)", color: "var(--ee-bg-deep)", boxShadow: "0 0 24px var(--ee-glow)" }}
+              style={{ background: "var(--ee-accent-solid)", color: "var(--ee-on-accent)", boxShadow: "0 0 24px var(--ee-glow)" }}
             >
               {t("detail.route")}
             </a>

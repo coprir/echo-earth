@@ -234,7 +234,7 @@ export default function Concierge({
                     {step === "journey" && energy ? t(`journey.${energy}.title`) : t("con.question")}
                   </h2>
                 </div>
-                <button onClick={close} aria-label={t("con.close")} className="rounded-full w-7 h-7 grid place-items-center text-xs shrink-0" style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}>
+                <button onClick={close} aria-label={t("con.close")} className="ee-tap rounded-full w-7 h-7 grid place-items-center text-xs shrink-0" style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}>
                   ✕
                 </button>
               </div>
@@ -271,11 +271,11 @@ export default function Concierge({
                         role="radio"
                         aria-checked={local === o.v}
                         onClick={() => setLocal(o.v)}
-                        className="flex-1 rounded-full px-3 py-2 text-[11px] tracking-wide transition-colors"
+                        className="min-h-11 flex-1 rounded-full px-3 py-2 text-[11px] tracking-wide transition-colors"
                         style={{
-                          color: local === o.v ? "var(--ee-bg-deep)" : "var(--ee-text-dim)",
-                          background: local === o.v ? "var(--ee-accent)" : "transparent",
-                          border: `1px solid ${local === o.v ? "var(--ee-accent)" : "var(--ee-line)"}`,
+                          color: local === o.v ? "var(--ee-on-accent)" : "var(--ee-text-dim)",
+                          background: local === o.v ? "var(--ee-accent-solid)" : "transparent",
+                          border: `1px solid ${local === o.v ? "var(--ee-accent-solid)" : "var(--ee-line)"}`,
                         }}
                       >
                         {o.label}
@@ -365,7 +365,7 @@ export default function Concierge({
                         setStep("intent");
                       }}
                       className="flex-1 rounded-xl py-2.5 text-sm transition-transform active:scale-95"
-                      style={{ background: "var(--ee-accent)", color: "var(--ee-bg-deep)", boxShadow: "0 0 20px var(--ee-glow)" }}
+                      style={{ background: "var(--ee-accent-solid)", color: "var(--ee-on-accent)", boxShadow: "0 0 20px var(--ee-glow)" }}
                     >
                       {t("con.change")}
                     </button>

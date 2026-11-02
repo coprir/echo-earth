@@ -19,7 +19,7 @@ interface Props {
 export default function CategoryOrbs({ categories, active, onPick }: Props) {
   const { t } = useT();
   return (
-    <nav aria-label={t("cat.aria")} className="flex gap-2.5 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav aria-label={t("cat.aria")} className="ee-scroll-x flex gap-2.5 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {categories.map((c, i) => {
         const isActive = c.id === active;
         return (
@@ -33,7 +33,7 @@ export default function CategoryOrbs({ categories, active, onPick }: Props) {
             whileHover={{ scale: 1.08, y: -2 }}
             whileTap={{ scale: 0.94 }}
             aria-pressed={isActive}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-colors ${isActive ? "ee-pulse" : ""}`}
+            className={`shrink-0 flex items-center gap-2 min-h-11 px-4 py-2 rounded-full text-sm transition-colors ${isActive ? "ee-pulse" : ""}`}
             style={{
               background: isActive ? `hsla(${c.hue}, 80%, 60%, 0.22)` : "var(--ee-surface)",
               border: `1px solid ${isActive ? `hsla(${c.hue}, 85%, 65%, 0.8)` : "var(--ee-line)"}`,

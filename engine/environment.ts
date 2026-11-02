@@ -41,6 +41,16 @@ export interface Palette {
   surface: string;
   glow: string;
   accent: string;
+  /**
+   * The accent as a *filled surface* behind dark ink (primary CTAs, the active
+   * mode pill, ::selection). Same hue and saturation as `accent`, but lightened
+   * just enough to clear WCAG AA 4.5:1 against `onAccent` — see accentSolid().
+   * `accent` itself stays untouched for glows, borders, neurons and accent text
+   * on dark, where its luminance is already an asset rather than a hazard.
+   */
+  accentSolid: string;
+  /** The ink that sits on `accentSolid`. */
+  onAccent: string;
   accent2: string;
   text: string;
   textDim: string;
@@ -87,6 +97,45 @@ function drift(base: number, seed: number, tick: number, range = 14): number {
 }
 
 const h = (hue: number, s: number, l: number, a = 1) => `hsla(${Math.round(hue)}, ${s}%, ${l}%, ${a})`;
+
+/**
+ * WCAG relative luminance of an opaque HSL colour (0..1).
+ *
+ * Needed because HSL *lightness* is not perceived brightness: hsl(240,95%,60%)
+ * (blue) carries roughly a tenth the luminance of hsl(60,95%,60%) (yellow) at
+ * the identical lightness. The organism drifts its accent hue freely, so a
+ * fixed lightness cannot promise a fixed contrast — it has to be measured.
+ */
+function luminance(hue: number, s: number, l: number): number {
+  const sat = s / 100;
+  const light = l / 100;
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const hp = (((hue % 360) + 360) % 360) / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  const [r, g, b] =
+    hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x];
+  const m = light - c / 2;
+  const lin = (v: number) => {
+    const u = v + m;
+    return u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+/**
+ * The smallest lightness >= `from` at which `hue` clears AA 4.5:1 against the
+ * given ink. Hue and saturation are preserved, so the mood survives intact;
+ * only blue/violet accents move at all (~15% of palettes, by at most 10%
+ * lightness) and every other palette comes back byte-identical.
+ */
+function accentSolid(hue: number, s: number, from: number, inkLum: number): number {
+  for (let l = from; l < 100; l++) {
+    if (contrast(luminance(hue, s, l), inkLum) >= 4.5) return l;
+  }
+  return 100;
+}
 
 interface Mood {
   label: string;
@@ -175,12 +224,20 @@ export function resolveTheme(env: EnvSignals, atmosphere: Atmosphere = "auto"): 
   // "light" moods still run on deep canvases at ECHO EARTH — light means luminous, not white.
   const lum = mood.light && !survival;
 
+  // the ink on filled accent surfaces is the deepest canvas colour; measure it
+  // once so the accent can be lifted to meet it rather than guessed at
+  const inkL = lum ? 50 : 60;
+  const inkLight = lum ? 7 : 3;
+  const accentL = lum ? 62 : 60;
+
   const palette: Palette = {
     bg: lum ? h(base, 45, 12) : h(base, 55, 6),
     bgDeep: lum ? h(base, 50, 7) : h(base, 60, 3),
     surface: h(base, 40, lum ? 18 : 12, 0.55),
     glow: h(acc, 90, 60, 0.35),
-    accent: h(acc, 95, lum ? 62 : 60),
+    accent: h(acc, 95, accentL),
+    accentSolid: h(acc, 95, accentSolid(acc, 95, accentL, luminance(base, inkL, inkLight))),
+    onAccent: h(base, inkL, inkLight),
     accent2: h(base, 80, 70),
     text: h(base, 25, 94),
     textDim: h(base, 18, 70, 0.85),
@@ -225,6 +282,8 @@ export function applyTheme(t: Theme): void {
     "--ee-surface": p.surface,
     "--ee-glow": p.glow,
     "--ee-accent": p.accent,
+    "--ee-accent-solid": p.accentSolid,
+    "--ee-on-accent": p.onAccent,
     "--ee-accent2": p.accent2,
     "--ee-text": p.text,
     "--ee-text-dim": p.textDim,

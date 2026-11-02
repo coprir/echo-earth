@@ -369,7 +369,7 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
         aria-label={t("map.aria")}
         role="img"
       />
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5" role="group" aria-label={t("map.zoomgroup")}>
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1" role="group" aria-label={t("map.zoomgroup")}>
         {[
           { glyph: "+", label: t("map.zoomin"), action: () => buttonZoom(1.5) },
           { glyph: "−", label: t("map.zoomout"), action: () => buttonZoom(1 / 1.5) },
@@ -379,7 +379,7 @@ export default function NeuralMap({ places, selectedId, onSelect, motionIntensit
             key={b.label}
             onClick={b.action}
             aria-label={b.label}
-            className="ee-glass !rounded-full w-9 h-9 grid place-items-center text-base leading-none transition-transform active:scale-90"
+            className="ee-glass !rounded-full w-11 h-11 grid place-items-center text-base leading-none transition-transform active:scale-90"
             style={{ color: "var(--ee-text-dim)" }}
           >
             {b.glyph}

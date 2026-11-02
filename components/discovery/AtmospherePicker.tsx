@@ -45,7 +45,7 @@ export default function AtmospherePicker() {
                       setOpen(false);
                     }}
                     aria-pressed={active}
-                    className="group flex w-full flex-col items-start rounded-xl px-3 py-1.5 text-start transition-colors"
+                    className="group flex min-h-11 w-full flex-col items-start justify-center rounded-xl px-3 py-1.5 text-start transition-colors"
                     style={{ background: active ? "var(--ee-glow)" : "transparent" }}
                   >
                     <span className="text-sm" style={{ color: active ? "var(--ee-text)" : "var(--ee-text-dim)" }}>
@@ -66,7 +66,7 @@ export default function AtmospherePicker() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={`${t(`atmo.${atmosphere}.label`)} — ${t("atmo.change")}`}
-        className="ee-glass ee-pulse flex items-center gap-2 !rounded-full px-3 py-2"
+        className="ee-glass ee-pulse flex min-h-11 items-center gap-2 !rounded-full px-3 py-2"
         style={{ color: "var(--ee-text)" }}
       >
         <span className="inline-block h-2.5 w-2.5 rounded-full ee-breathe" style={{ background: "var(--ee-accent)", boxShadow: "0 0 12px var(--ee-glow)" }} />

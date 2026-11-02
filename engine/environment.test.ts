@@ -90,3 +90,80 @@ describe("resolveTheme — graceful degradation (PRF-1: do not change without a 
     expect(low.particles).toBe(high.particles);
   });
 });
+
+describe("palette contrast (A11Y: the generated accent must stay legible)", () => {
+  /** WCAG relative luminance of an `hsla(h, s%, l%, a)` string, alpha ignored. */
+  function luminance(hsla: string): number {
+    const m = hsla.match(/hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/);
+    if (!m) throw new Error(`not an hsl() colour: ${hsla}`);
+    const [hue, s, l] = [Number(m[1]), Number(m[2]) / 100, Number(m[3]) / 100];
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const hp = (((hue % 360) + 360) % 360) / 60;
+    const x = c * (1 - Math.abs((hp % 2) - 1));
+    const rgb =
+      hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x];
+    const off = l - c / 2;
+    const lin = (v: number) => {
+      const u = v + off;
+      return u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  }
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [luminance(a), luminance(b)];
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
+
+  const ATMOS = ["auto", "dream", "neonstorm", "calmpulse", "goldensunset", "cyberrain", "midnight", "aurora", "chaos"] as const;
+  const WEATHER = ["clear", "clouds", "rain", "drizzle", "thunder", "snow", "mist"] as const;
+
+  // Hue drifts per visitor seed and mutates on a timer, and HSL lightness is not
+  // perceived brightness — a blue accent carries ~a tenth the luminance of a
+  // yellow one at the same lightness. So this sweeps the whole reachable space
+  // rather than spot-checking one palette.
+  it("keeps accentSolid/onAccent at AA 4.5:1 for every mood, season, hour, weather and visitor seed", () => {
+    let worst = { ratio: Infinity, where: "" };
+    for (const atmosphere of ATMOS) {
+      for (const weather of WEATHER) {
+        for (const month of [0, 3, 6, 9]) {
+          for (const hour of [0, 3, 6, 10, 18, 21]) {
+            for (const seed of [0, 0.17, 0.33, 0.5, 0.71, 0.93]) {
+              for (const tick of [0, 1, 2, 3, 4, 5]) {
+                const t = resolveTheme(
+                  env({
+                    now: new Date(2026, month, 15, hour),
+                    weather: { kind: weather, tempC: 10, description: weather },
+                    visitorSeed: seed,
+                    mutationTick: tick,
+                  }),
+                  atmosphere
+                );
+                const r = ratio(t.palette.accentSolid, t.palette.onAccent);
+                if (r < worst.ratio) {
+                  worst = { ratio: r, where: `${atmosphere}/${weather}/m${month}/h${hour}/seed${seed}/tick${tick}` };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(worst.ratio, `worst pairing was ${worst.where} at ${worst.ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("leaves accent itself untouched — only the filled-surface variant is lifted", () => {
+    // accent still carries the glow/border/neuron role; lifting it there would
+    // wash out the organism, so accentSolid is a strictly separate token
+    const t = resolveTheme(env({ now: new Date("2026-01-15T12:00:00") }), "midnight");
+    expect(t.palette.accent).toMatch(/^hsla\(/);
+    expect(luminance(t.palette.accentSolid)).toBeGreaterThanOrEqual(luminance(t.palette.accent));
+  });
+
+  it("keeps body text and dim text legible on the canvas", () => {
+    for (const atmosphere of ATMOS) {
+      const t = resolveTheme(env(), atmosphere);
+      expect(ratio(t.palette.text, t.palette.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.palette.textDim, t.palette.bg)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

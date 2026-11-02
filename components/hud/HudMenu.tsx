@@ -27,7 +27,7 @@ export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; a
     setSound(!sound);
   };
 
-  const rowStyle = "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors";
+  const rowStyle = "flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors";
 
   return (
     <div className="relative shrink-0 pointer-events-auto">
@@ -35,7 +35,7 @@ export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; a
         onClick={() => setOpen((o) => !o)}
         aria-label={t("hud.menu")}
         aria-expanded={open}
-        className="ee-glass !rounded-full w-9 h-9 grid place-items-center text-base"
+        className="ee-glass !rounded-full w-11 h-11 grid place-items-center text-base"
         style={{ color: "var(--ee-text-dim)" }}
       >
         ⋯
@@ -89,7 +89,7 @@ export default function HudMenu({ onAbout, audioMood }: { onAbout: () => void; a
                         setLang(l.code);
                         setOpen(false);
                       }}
-                      className="rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors"
+                      className="flex min-h-11 items-center rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors"
                       style={{ background: active ? "var(--ee-glow)" : "transparent", color: active ? "var(--ee-text)" : "var(--ee-text-dim)" }}
                     >
                       {l.label}

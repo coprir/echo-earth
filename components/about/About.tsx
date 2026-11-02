@@ -44,7 +44,7 @@ export default function About({ open, onClose }: { open: boolean; onClose: () =>
                   {t("about.title")}
                 </h2>
               </div>
-              <button onClick={onClose} aria-label={t("about.close")} className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-xs" style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}>
+              <button onClick={onClose} aria-label={t("about.close")} className="ee-tap shrink-0 grid h-7 w-7 place-items-center rounded-full text-xs" style={{ border: "1px solid var(--ee-line)", color: "var(--ee-text-dim)" }}>
                 ✕
               </button>
             </div>
@@ -70,7 +70,7 @@ export default function About({ open, onClose }: { open: boolean; onClose: () =>
             <button
               onClick={onClose}
               className="mt-6 w-full rounded-xl py-2.5 text-sm transition-transform active:scale-95"
-              style={{ background: "var(--ee-accent)", color: "var(--ee-bg-deep)", boxShadow: "0 0 20px var(--ee-glow)" }}
+              style={{ background: "var(--ee-accent-solid)", color: "var(--ee-on-accent)", boxShadow: "0 0 20px var(--ee-glow)" }}
             >
               {t("about.cta")}
             </button>

@@ -14,7 +14,7 @@ const MODES: MoodMode[] = ["explore", "latenight", "rainyday", "cheapeats", "lux
 export default function MoodModes({ active, onPick }: { active: MoodMode; onPick: (m: MoodMode) => void }) {
   const { t } = useT();
   return (
-    <div role="radiogroup" aria-label={t("mode.aria")} className="flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div role="radiogroup" aria-label={t("mode.aria")} className="ee-scroll-x flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {MODES.map((m) => {
         const isActive = m === active;
         return (
@@ -24,11 +24,14 @@ export default function MoodModes({ active, onPick }: { active: MoodMode; onPick
             aria-checked={isActive}
             onClick={() => onPick(m)}
             whileTap={{ scale: 0.95 }}
-            className="shrink-0 px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.18em] transition-all"
+            // min-h-11 == 44px: the lens pills were ~26px tall, under the
+            // minimum comfortable touch target, and they sit at the very
+            // bottom of the viewport where thumb accuracy is worst
+            className="shrink-0 grid place-items-center min-h-11 px-4 py-1 rounded-full text-[11px] uppercase tracking-[0.18em] transition-all"
             style={{
-              color: isActive ? "var(--ee-bg-deep)" : "var(--ee-text-dim)",
-              background: isActive ? "var(--ee-accent)" : "transparent",
-              border: `1px solid ${isActive ? "var(--ee-accent)" : "var(--ee-line)"}`,
+              color: isActive ? "var(--ee-on-accent)" : "var(--ee-text-dim)",
+              background: isActive ? "var(--ee-accent-solid)" : "transparent",
+              border: `1px solid ${isActive ? "var(--ee-accent-solid)" : "var(--ee-line)"}`,
               boxShadow: isActive ? "0 0 18px var(--ee-glow)" : "none",
             }}
           >
