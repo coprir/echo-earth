@@ -206,9 +206,21 @@ export default function EchoEarth() {
         {!langChosen && <LanguageGate onDone={() => setLangChosen(true)} />}
         {langChosen && !awake && <PlanetaryEntry env={env} theme={theme} onDone={() => setAwake(true)} />}
 
-        <ErrorBoundary>
-          <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
-        </ErrorBoundary>
+        {/* gated on awake, not just mounted-and-hidden: PlanetaryEntry is an
+            opaque fixed inset-0 (z-50) for the whole ~6-11s intro, so an
+            always-mounted ParticleField used to run a second full WebGL
+            context — animating up to 2200 particles every frame — entirely
+            behind it for no visual payoff, competing with LivingEarth's own
+            (heavier) context for the same GPU. Mounting it only once the
+            intro ends removes that wasted concurrent context, and the fade-in
+            replaces what was previously a hard pop the instant it mounted. */}
+        {awake && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.6, ease: "easeOut" }}>
+            <ErrorBoundary>
+              <ParticleField mode={theme.particles} density={theme.particleDensity} accent={theme.palette.accent} />
+            </ErrorBoundary>
+          </motion.div>
+        )}
 
         <VitalsHUD env={env} theme={theme} travel={mind.travel} onAbout={() => setAboutOpen(true)} />
 
