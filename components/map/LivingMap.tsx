@@ -58,12 +58,15 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
   useEffect(() => {
     if (!key || !ref.current) return;
     let cancelled = false;
+    let errWatch: MutationObserver | undefined;
+    let errTimer: ReturnType<typeof setTimeout> | undefined;
 
-    // Google's own auth-failure channel: called when the key is invalid,
-    // unbilled, or the current origin (e.g. localhost during setup) isn't on
-    // its allow-list. This does NOT reject importLibrary() below — the SDK
-    // loads "successfully" and paints its gray error tile regardless, so this
-    // is the only way to catch that failure mode at all.
+    // Google's auth-failure channel: fires for an invalid key or a
+    // referer-restricted origin. NOT for every failure — a project with no
+    // active billing account (BillingNotEnabledMapError) never calls this;
+    // Google silently injects a gray ".gm-err-*" error tile into the map
+    // node instead. So this handler alone is not enough — see the DOM watch
+    // below, which is what actually catches the billing case.
     const prevAuthFailure = window.gm_authFailure;
     window.gm_authFailure = () => {
       if (!cancelled) setFailed(true);
@@ -74,7 +77,8 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
         setOptions({ key, v: "weekly" });
         const { Map } = (await importLibrary("maps")) as google.maps.MapsLibrary;
         if (cancelled || !ref.current) return;
-        mapRef.current = new Map(ref.current, {
+        const node = ref.current;
+        mapRef.current = new Map(node, {
           center: { lat, lng: lon },
           zoom: 14,
           disableDefaultUI: true,
@@ -83,6 +87,23 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
           styles: moodStyles(theme),
           backgroundColor: "transparent",
         });
+
+        // Catch the billing / API-not-enabled case that gm_authFailure misses:
+        // Google paints a ".gm-err-container" tile into the map node. If it
+        // appears, hide the whole layer so the neural map stands alone. A
+        // healthy map never injects it, so the watch just expires harmlessly.
+        const hasErr = () => !!node.querySelector('[class*="gm-err"]');
+        const trip = () => {
+          if (cancelled || !hasErr()) return false;
+          setFailed(true);
+          errWatch?.disconnect();
+          return true;
+        };
+        if (!trip()) {
+          errWatch = new MutationObserver(trip);
+          errWatch.observe(node, { childList: true, subtree: true });
+          errTimer = setTimeout(() => errWatch?.disconnect(), 6000);
+        }
       })
       .catch((e) => {
         // script/network failure reaching Google at all — same outcome as an
@@ -96,6 +117,8 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
     return () => {
       cancelled = true;
       window.gm_authFailure = prevAuthFailure;
+      errWatch?.disconnect();
+      if (errTimer) clearTimeout(errTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
