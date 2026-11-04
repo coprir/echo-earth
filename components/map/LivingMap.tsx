@@ -10,14 +10,16 @@
  * right after setup, and the default for `localhost` until it's allow-listed)
  * doesn't fail cleanly on its own: the JS SDK still "succeeds" and paints its
  * own gray "This page can't load Google Maps correctly" / "For development
- * purposes only" tile directly into this div — which sits *behind* the neural
- * map as this component's whole job, so that tile would read as a stray
- * Google error sitting in the organism's background. Both of Google's two
- * distinct failure channels are handled below: a rejected `importLibrary()`
- * (network/script failure) via try/catch, and `window.gm_authFailure` (the
- * key itself being rejected — auth/billing/referer), which fires without
- * rejecting any promise. Either one hides this layer instead of leaving
- * Google's broken tile on screen; the neural map above never needed it.
+ * purposes only" overlay directly into this div — which sits *behind* the
+ * neural map as this component's whole job, so that would read as a stray
+ * Google error sitting in the organism's background. We hide this layer on
+ * ANY failure, detected by success rather than by error: a healthy map fires
+ * `tilesloaded`, whereas billing / auth / referer / api-not-enabled errors
+ * paint the overlay and load zero tiles. If no tile arrives within a short
+ * window we drop the layer. (gm_authFailure and a rejected importLibrary()
+ * are also handled, but neither covers BillingNotEnabledMapError — that one
+ * fires no callback and, in the current SDK, paints a class-less overlay with
+ * nothing stable to match — so the tilesloaded timeout is the real safety net.)
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -58,15 +60,13 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
   useEffect(() => {
     if (!key || !ref.current) return;
     let cancelled = false;
-    let errWatch: MutationObserver | undefined;
-    let errTimer: ReturnType<typeof setTimeout> | undefined;
+    let failTimer: ReturnType<typeof setTimeout> | undefined;
+    let tilesListener: google.maps.MapsEventListener | undefined;
 
     // Google's auth-failure channel: fires for an invalid key or a
-    // referer-restricted origin. NOT for every failure — a project with no
-    // active billing account (BillingNotEnabledMapError) never calls this;
-    // Google silently injects a gray ".gm-err-*" error tile into the map
-    // node instead. So this handler alone is not enough — see the DOM watch
-    // below, which is what actually catches the billing case.
+    // referer-restricted origin, but NOT for an unbilled project
+    // (BillingNotEnabledMapError never calls it). It's a fast path for the
+    // cases it does cover; the tilesloaded timeout below is the real catch-all.
     const prevAuthFailure = window.gm_authFailure;
     window.gm_authFailure = () => {
       if (!cancelled) setFailed(true);
@@ -88,22 +88,20 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
           backgroundColor: "transparent",
         });
 
-        // Catch the billing / API-not-enabled case that gm_authFailure misses:
-        // Google paints a ".gm-err-container" tile into the map node. If it
-        // appears, hide the whole layer so the neural map stands alone. A
-        // healthy map never injects it, so the watch just expires harmlessly.
-        const hasErr = () => !!node.querySelector('[class*="gm-err"]');
-        const trip = () => {
-          if (cancelled || !hasErr()) return false;
-          setFailed(true);
-          errWatch?.disconnect();
-          return true;
-        };
-        if (!trip()) {
-          errWatch = new MutationObserver(trip);
-          errWatch.observe(node, { childList: true, subtree: true });
-          errTimer = setTimeout(() => errWatch?.disconnect(), 6000);
-        }
+        // Success-based failure detection: a working map fires "tilesloaded".
+        // Billing / auth / referer / api-not-enabled errors paint an overlay
+        // and never load a tile, so if "tilesloaded" hasn't fired within a
+        // short window, hide the whole layer. This is the only channel that
+        // reliably catches BillingNotEnabledMapError (no callback, class-less
+        // overlay). A healthy map clears the timer before it fires.
+        let settled = false;
+        tilesListener = mapRef.current.addListener("tilesloaded", () => {
+          settled = true;
+          if (failTimer) clearTimeout(failTimer);
+        });
+        failTimer = setTimeout(() => {
+          if (!cancelled && !settled) setFailed(true);
+        }, 3500);
       })
       .catch((e) => {
         // script/network failure reaching Google at all — same outcome as an
@@ -117,8 +115,8 @@ export default function LivingMap({ lat, lon, theme, zoom = 1 }: { lat: number; 
     return () => {
       cancelled = true;
       window.gm_authFailure = prevAuthFailure;
-      errWatch?.disconnect();
-      if (errTimer) clearTimeout(errTimer);
+      tilesListener?.remove();
+      if (failTimer) clearTimeout(failTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
